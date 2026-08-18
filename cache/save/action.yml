@@ -43,3 +43,5 @@ outputs:
 runs:
   using: node24
   main: ../../dist/save/index.js
+  env:
+    GITHUB_TOKEN: ${{ github.token }}

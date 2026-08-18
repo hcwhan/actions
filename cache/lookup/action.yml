@@ -19,3 +19,5 @@ outputs:
 runs:
   using: node24
   main: ../../dist/lookup/index.js
+  env:
+    GITHUB_TOKEN: ${{ github.token }}
