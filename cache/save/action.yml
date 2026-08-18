@@ -1,0 +1,45 @@
+name: Cache Save
+description: 保存带版本后缀的 GitHub Actions cache（缓存 key + UTC 时间戳），轮询 cache API 验证完整 key 可见，并清理同族 key 下旧条目。
+
+inputs:
+  path:
+    description: 要缓存的目录路径（多个路径用换行分隔）
+    required: true
+  family-key:
+    description: 同族 key（save 后 delete 清理时 API 列举范围）
+    required: true
+  cache-key:
+    description: 缓存 key（必须以 family-key 为前缀；实际写入 key = cache-key + 时间后缀）
+    required: true
+  verify-timeout-seconds:
+    description: save 后轮询 cache API verify 的最长等待秒数
+    required: false
+    default: "180"
+  verify-interval-seconds:
+    description: save 后每次 cache API verify 轮询的间隔秒数
+    required: false
+    default: "10"
+  max-save-attempts:
+    description: save+verify 失败后的最多尝试次数上限（超过则 step 失败）
+    required: false
+    default: "3"
+  cleanup-stale:
+    description: save 成功后是否删除同族 key 下旧条目
+    required: false
+    default: "true"
+  api-try-count:
+    description: 单次 saveCache / GitHub API 调用的最多尝试次数（含首次，默认 3 次）
+    required: false
+    default: "3"
+
+outputs:
+  cache-key-full:
+    description: 实际写入的完整 cache key（cache-key 输入 + 时间戳后缀）
+  cache-saved:
+    description: save 且 verify 成功时为 true
+  save-attempts:
+    description: 成功的 save 尝试序号（从 1 起）
+
+runs:
+  using: node24
+  main: ../../dist/save/index.js

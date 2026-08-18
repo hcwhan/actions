@@ -1,0 +1,33 @@
+name: Cache Restore
+description: 按 cache-key 前缀 lookup 最新 versioned cache 并恢复；可选 restore 成功后删除同族 key 下旧条目。
+
+inputs:
+  path:
+    description: 要恢复到的目录路径（多个路径用换行分隔）
+    required: true
+  family-key:
+    description: 同族 key（delete 清理时 API 列举范围；校验 cache-key 前缀关系）
+    required: true
+  cache-key:
+    description: 缓存 key（lookup 列举前缀；必须以 family-key 为前缀且更长）
+    required: true
+  cleanup-stale:
+    description: restore 成功后是否删除同族 key 下旧条目
+    required: false
+    default: "true"
+  api-try-count:
+    description: 单次 restoreCache / GitHub API 调用的最多尝试次数（含首次，默认 3 次）
+    required: false
+    default: "3"
+
+outputs:
+  cache-exists:
+    description: 存在匹配 cache-key 前缀的版本化 key 时为 true
+  cache-used:
+    description: cache 已实际解压恢复到 path 时为 true
+  cache-key-full:
+    description: 解析到的完整 cache key（cache-key 输入 + 时间戳后缀；未找到时为空）
+
+runs:
+  using: node24
+  main: ../../dist/restore/index.js

@@ -1,0 +1,25 @@
+import * as core from "@actions/core";
+
+import { readCacheKeyInput, readPositiveIntInput, runAction } from "../lib/action-input.js";
+import { resolveNewestCacheKey } from "../lib/cache-list.js";
+
+// lookup action 主流程：只读解析最新 key
+async function run(): Promise<void> {
+  const cacheKey = readCacheKeyInput();
+  const apiTryCount = readPositiveIntInput("api-try-count");
+
+  core.info(`lookup cache：cache-key=${cacheKey}`);
+  const cacheKeyFull = await resolveNewestCacheKey(cacheKey, { apiTryCount });
+  const exists = cacheKeyFull !== null;
+
+  if (exists) {
+    core.info(`找到 cache：cache-key=${cacheKey} cache-key-full=${cacheKeyFull}`);
+  } else {
+    core.info(`未找到 cache：cache-key=${cacheKey}`);
+  }
+
+  core.setOutput("cache-exists", exists ? "true" : "false");
+  core.setOutput("cache-key-full", cacheKeyFull ?? "");
+}
+
+runAction(run);
