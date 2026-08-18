@@ -1,3 +1,4 @@
+import * as core from "@actions/core";
 import { context } from "@actions/github";
 
 // 当前 workflow 仓库坐标（Octokit / cache API 共用）
@@ -22,11 +23,15 @@ export function getGithubRepoContext(): GithubRepoContext {
   return { owner, repo, ref };
 }
 
-// 读取 GITHUB_TOKEN（list/delete cache 必需）
+// 读取 GitHub token（list/delete cache 必需；composite 嵌套调用时需经 github-token input 传入）
 export function getGithubToken(): string {
-  const token = process.env.GITHUB_TOKEN;
+  const fromInput = core.getInput("github-token").trim();
+  if (fromInput) {
+    return fromInput;
+  }
+  const token = process.env.GITHUB_TOKEN?.trim();
   if (!token) {
-    throw new Error("GITHUB_TOKEN 缺失");
+    throw new Error("GITHUB_TOKEN 缺失（请设置 github-token input 或 GITHUB_TOKEN 环境变量）");
   }
   return token;
 }

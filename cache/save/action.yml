@@ -31,6 +31,10 @@ inputs:
     description: 单次 saveCache / GitHub API 调用的最多尝试次数（含首次，默认 3 次）
     required: false
     default: "3"
+  github-token:
+    description: cache API 认证 token（默认 github.token；composite 嵌套调用时由 action 默认值注入）
+    required: false
+    default: ${{ github.token }}
 
 outputs:
   cache-key-full:
@@ -43,5 +47,3 @@ outputs:
 runs:
   using: node24
   main: ../../dist/save/index.js
-  env:
-    GITHUB_TOKEN: ${{ github.token }}

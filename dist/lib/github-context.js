@@ -1,3 +1,4 @@
+import * as core from "../vendor/core/index.js";
 import { context } from "../vendor/github/index.js";
 // 从 @actions/github context 读取仓库坐标
 export function getGithubRepoContext() {
@@ -11,11 +12,15 @@ export function getGithubRepoContext() {
     }
     return { owner, repo, ref };
 }
-// 读取 GITHUB_TOKEN（list/delete cache 必需）
+// 读取 GitHub token（list/delete cache 必需；composite 嵌套调用时需经 github-token input 传入）
 export function getGithubToken() {
-    const token = process.env.GITHUB_TOKEN;
+    const fromInput = core.getInput("github-token").trim();
+    if (fromInput) {
+        return fromInput;
+    }
+    const token = process.env.GITHUB_TOKEN?.trim();
     if (!token) {
-        throw new Error("GITHUB_TOKEN 缺失");
+        throw new Error("GITHUB_TOKEN 缺失（请设置 github-token input 或 GITHUB_TOKEN 环境变量）");
     }
     return token;
 }
