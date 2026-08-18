@@ -8,6 +8,13 @@ const rootDir = path.join(scriptDir, "..");
 
 const ENTRY_NAMES = ["save", "lookup", "restore"];
 
+// ESM vendor bundle 内嵌的 CJS 依赖（如 @actions/http-client → tunnel）会 dynamic require Node 内置模块；
+// GitHub Actions node24 以 ESM 加载 action 时没有全局 require，需注入 createRequire shim。
+const ESM_REQUIRE_SHIM = [
+  'import { createRequire as __createRequireForVendorBundle } from "node:module";',
+  "const require = __createRequireForVendorBundle(import.meta.url);",
+].join("\n");
+
 // 共享 esbuild 选项：不压缩、保留名称、生成 source map
 const sharedOptions = {
   platform: "node",
@@ -17,6 +24,7 @@ const sharedOptions = {
   sourcemap: true,
   logLevel: "info",
   legalComments: "inline",
+  banner: { js: ESM_REQUIRE_SHIM },
 };
 
 // 3 个 vendor 包，与 package.json dependencies 一一对应
