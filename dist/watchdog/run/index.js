@@ -1,5 +1,6 @@
 import * as core from "../../vendor/core/index.js";
 import { runAction } from "../../base/action-input.js";
+import { sleep } from "../../base/retry.js";
 import { parseArgsInput, parseJobStartMs, parseLimitHoursInput } from "../lib/parse-inputs.js";
 import { spawnAsync } from "../lib/spawn-async.js";
 import { createWatchdog } from "../lib/watchdog.js";
@@ -14,7 +15,7 @@ function setRunOutputs(opts) {
         core.info(`子进程 signal=${opts.signal}`);
     }
 }
-// run action 主流程：spawn 子进程 + 看门狗超时中止
+// run action 主流程：spawn 子进程 + Watchdog 超时中止
 async function run() {
     const cwd = core.getInput("working-directory", { required: true });
     const command = core.getInput("command", { required: true });
@@ -31,22 +32,23 @@ async function run() {
         ({ exitCode, signal } = await handle.completed);
     }
     finally {
-        ({ aborted, forceKilled } = await watchdog.waitAbortSettled());
+        ({ aborted, forceKilled } = await watchdog.waitEnded());
     }
+    await sleep(5 * 1000);
     const taskSucceeded = exitCode === 0;
     const shouldRetry = aborted && !forceKilled && !taskSucceeded;
     setRunOutputs({ shouldRetry, aborted, forceKilled, taskSucceeded, exitCode, signal });
     if (!taskSucceeded) {
         if (aborted) {
             if (!forceKilled) {
-                throw new Error("任务被看门狗优雅中止");
+                throw new Error("任务被 Watchdog 优雅中止");
             }
             else {
-                throw new Error("任务优雅中止失败，被看门狗强制中止");
+                throw new Error("任务优雅中止失败，被 Watchdog 强制中止");
             }
         }
         else {
-            throw new Error(`任务失败 (exit ${exitCode ?? signal ?? "unknown"})`);
+            throw new Error(`任务失败: exitCode=${exitCode ?? signal ?? "未知"}`);
         }
     }
 }

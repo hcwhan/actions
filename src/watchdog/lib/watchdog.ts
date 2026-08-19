@@ -1,6 +1,9 @@
 
 import { type ChildProcess } from "node:child_process";
 
+import * as core from "@actions/core";
+
+import { errorMessage } from "@/base/errors.js";
 import { sleep } from "@/base/retry.js";
 import { forceKillProcessTree, sendChildSigint } from "./spawn-async.js";
 
@@ -23,12 +26,12 @@ async function abortChild(child: ChildProcess): Promise<boolean> {
         return false;
       }
 
-      console.log(
-        `Watchdog: abort attempt ${attempt}/${MAX_ABORT_ATTEMPTS}, sending SIGINT (child.kill)`,
+      core.info(
+        `Watchdog: 第 ${attempt}/${MAX_ABORT_ATTEMPTS} 次优雅中止尝试，发送 SIGINT（child.kill）`,
       );
       if (!sendChildSigint(child)) {
-        console.warn(
-          `Watchdog: SIGINT attempt ${attempt}/${MAX_ABORT_ATTEMPTS} failed`,
+        core.warning(
+          `Watchdog: 第 ${attempt}/${MAX_ABORT_ATTEMPTS} 次 SIGINT 发送失败`,
         );
       }
 
@@ -39,40 +42,29 @@ async function abortChild(child: ChildProcess): Promise<boolean> {
       return false;
     }
 
-    console.log(
-      `Watchdog: ${MAX_ABORT_ATTEMPTS} abort attempts exhausted, force killing pid=${child.pid}`,
+    core.info(
+      `Watchdog: ${MAX_ABORT_ATTEMPTS} 次优雅中止已耗尽，强制终止 pid=${child.pid}`,
     );
     if (!forceKillProcessTree(child.pid)) {
-      console.warn(
-        `Watchdog: force kill may have failed; child may still be running (pid=${child.pid})`,
+      core.warning(
+        `Watchdog: 强制终止可能失败，子进程可能仍在运行（pid=${child.pid}）`,
       );
     }
     // 表示进入强杀流程，不表示 kill 一定成功
     return true;
   } catch (err) {
-    console.warn("Watchdog: abortChild failed", err);
+    core.warning(`Watchdog: 优雅中止子进程失败：${errorMessage(err)}`);
     return false;
   }
 }
 
-// 看门狗中止结果
-interface WatchdogAbortState {
-  aborted: boolean;
-  forceKilled: boolean;
-}
 
-// 看门狗句柄：等待中止完成并读取状态（完成后自动清理）
-interface WatchdogHandle {
-  waitAbortSettled: () => Promise<WatchdogAbortState>;
-}
-
-
-// 创建看门狗：超时后 SIGINT 优雅中止，耗尽后强杀进程树
+// 创建 Watchdog 实例：超时后 SIGINT 优雅中止，耗尽后强杀进程树
 export function createWatchdog(
   child: ChildProcess,
   jobStartMs: number,
   limitMs: number,
-): WatchdogHandle {
+) {
   let aborted = false;
   let forceKilled = false;
 
@@ -83,7 +75,7 @@ export function createWatchdog(
   // 如果正在中止中，则拦截父 Node 收到的 SIGINT
   const onSigint = (): void => {
     if (isAborting) {
-      console.log("Watchdog: received SIGINT while aborting (Node stays alive)");
+      core.info("Watchdog: 中止过程中收到 SIGINT（Node 进程保持运行）");
       return;
     }
     process.exit(130);
@@ -103,8 +95,8 @@ export function createWatchdog(
     }
 
     aborted = true;
-    console.log(
-      `Watchdog: job elapsed ${Date.now() - jobStartMs}ms >= ${limitMs}ms, beginning graceful abort`,
+    core.info(
+      `Watchdog: 任务已运行 ${Date.now() - jobStartMs}ms >= ${limitMs}ms，开始优雅中止`,
     );
 
     abortPromise = runAbortChild();
@@ -119,7 +111,7 @@ export function createWatchdog(
 
 
   return {
-    waitAbortSettled: async () => {
+    waitEnded: async () => {
       try {
         await abortPromise;
         return { aborted, forceKilled };
