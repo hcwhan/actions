@@ -1,8 +1,13 @@
 # hcwhan/actions
 
-可复用的 GitHub Actions 集合，提供带 UTC 时间后缀的**版本化 GHA cache** 工具（save / lookup / restore）。
+可复用的 GitHub Actions 集合：
 
-三个 action 均使用 **Node 24** 运行时（`action.yml` 中 `using: node24`）。
+- **cache** — 带 UTC 时间后缀的版本化 GHA cache（save / lookup / restore）
+- **watchdog** — job deadline 看门狗 + 超时重试 dispatch（job-start / run / dispatch-retry）
+
+所有 action 均使用 **Node 24** 运行时（`action.yml` 中 `using: node24`）。消费方引用 **`@main`**（如 `hcwhan/actions/cache/save@main`）。
+
+---
 
 ## Cache actions
 
@@ -71,6 +76,78 @@ steps:
 
 同一 ref 下，建议每个 cache-key 槽位仅安排一个 writer；代码不强制互斥，并发 save 会写入不同时间后缀的 key。
 
+---
+
+## Watchdog actions
+
+| Action              | 路径                      | 作用 |
+| ------------------- | ------------------------- | ---- |
+| **job-start**       | `watchdog/job-start`      | job 最早阶段记录 UTC epoch 毫秒（output `job-start-time`） |
+| **run**             | `watchdog/run`            | spawn 子进程 + deadline 看门狗；graceful abort 时 output `should-retry` |
+| **dispatch-retry**  | `watchdog/dispatch-retry` | 校验 `should-retry` 后 `workflow_dispatch` 重试，并等待 concurrency 取消当前 run |
+
+### 行为概要
+
+- **deadline**：由 `job-start-time` + `limit-hours`（默认 5，支持小数）计算；超时后对子进程最多 3 次 SIGINT（间隔 60s），仍存活则按平台强杀（Windows `taskkill /T /F`；Unix 进程组 `SIGKILL`）。
+- **should-retry**：`aborted && !force-killed && !task-succeeded`；graceful abort 失败（强杀）不触发 retry。
+- **dispatch-retry**：`createWorkflowDispatch` 失败时 `withRetry` 线性退避（最多 3 次，间隔 30s / 60s）；成功后等待 **5 分钟** 期望 concurrency 取消当前 run，超时则 step 失败。
+- **状态传递**：使用 `@actions/core` outputs。
+
+### 用法
+
+典型 serial workflow：
+
+```yaml
+on:
+  workflow_dispatch:
+    inputs:
+      retry_count:
+        description: 当前 retry 计数
+        required: false
+        default: "0"
+        type: string
+
+permissions:
+  actions: write
+  contents: read
+
+jobs:
+  build:
+    outputs:
+      should-retry: ${{ steps.run-task.outputs.should-retry }}
+    steps:
+      - name: Record job start
+        id: job-start
+        uses: hcwhan/actions/watchdog/job-start@main
+
+      - name: Run build with watchdog
+        id: run-task
+        uses: hcwhan/actions/watchdog/run@main
+        with:
+          working-directory: ${{ github.workspace }}
+          command: ninja
+          args: '["-C","build","install"]'
+          job-start-time: ${{ steps.job-start.outputs.job-start-time }}
+          limit-hours: "5"
+
+  retry:
+    needs: build
+    if: always() && !cancelled() && needs.build.outputs.should-retry == 'true'
+    steps:
+      - uses: hcwhan/actions/watchdog/dispatch-retry@main
+        with:
+          should-retry: ${{ needs.build.outputs.should-retry }}
+          use-cache: "true"
+          retry-count: ${{ inputs.retry_count }}
+          max-retry-count: "8"                   # 可选，默认 8
+          workflow-file: build-serial.yml
+          dispatch-inputs: '{"use_cache":"true"}'
+```
+
+`watchdog/run` outputs：`should-retry`、`aborted`、`force-killed`、`task-succeeded`、`exit-code`。
+
+---
+
 ## 开发
 
 ```bash
@@ -78,8 +155,15 @@ npm install
 npm run typecheck
 npm test
 npm run test:watch   # 可选，vitest 监听模式
-npm run build          # 构建全部 action 类型（当前等同 build:cache）
-npm run build:cache    # 仅构建 cache actions
+npm run format:ts    # 按 AGENTS.md 格式化 import / 空行
+npm run build        # 全量：clean → tsc → vendor → cache + watchdog import 改写
+npm run build:cache    # 仅 cache import 改写（需 dist 已由 tsc 产出）
+npm run build:watchdog # 仅 watchdog import 改写
 ```
 
-Node action 构建流程（`scripts/build-cache.mjs`）：清空 `dist/` → `tsc` 编译 `src/` → esbuild 打包 3 个 `dist/vendor/*/index.js` → 将 lib / entry 中的 `@actions/*` 与 `@/*` import 改写为 vendor / 相对路径。
+构建流程（`scripts/build.mjs`）：
+
+1. **全量**（`npm run build`）：`cleanDist` → `tsc` → esbuild 打包 `dist/vendor/{core,github,cache}/index.js` → `prepareBaseDist` → `prepareCacheDist` → `prepareWatchdogDist`
+2. **增量**（`build:cache` / `build:watchdog`）：仅对已有 `dist/` 做 `@actions/*` 与 `@/*` import 改写，不清理其它 action 组产物
+
+编码规范见 [AGENTS.md](./AGENTS.md)。

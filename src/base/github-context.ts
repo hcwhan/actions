@@ -1,5 +1,7 @@
+
 import * as core from "@actions/core";
 import { context, getOctokit } from "@actions/github";
+
 
 // 当前 workflow 仓库坐标（Octokit / cache API 共用）
 interface GithubRepoContext {
@@ -21,6 +23,15 @@ export function getGithubRepoContext(): GithubRepoContext {
   }
 
   return { owner, repo, ref };
+}
+
+// 从 GITHUB_REF_NAME 读取分支/tag 名（dispatch ref 默认值）
+export function getGithubRefName(): string {
+  const refName = process.env.GITHUB_REF_NAME?.trim();
+  if (!refName) {
+    throw new Error("GITHUB_REF_NAME 缺失");
+  }
+  return refName;
 }
 
 // 读取 GitHub token（list/delete cache 必需；composite 嵌套调用时需经 github-token input 传入）

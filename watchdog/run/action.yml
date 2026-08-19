@@ -1,0 +1,37 @@
+name: Watchdog Run
+description: 在指定目录 spawn 子进程并注册 deadline 看门狗；graceful abort 时输出 should-retry。
+
+inputs:
+  working-directory:
+    description: spawn 的工作目录（绝对或相对路径）
+    required: true
+  command:
+    description: 可执行文件（ninja、python 等）
+    required: true
+  args:
+    description: JSON 字符串数组，如 ["-C","build","install"]
+    required: false
+    default: "[]"
+  job-start-time:
+    description: UTC epoch 毫秒字符串，来自 job-start output
+    required: true
+  limit-hours:
+    description: deadline 小时数，支持小数（默认 5）
+    required: false
+    default: "5"
+
+outputs:
+  should-retry:
+    description: graceful abort 时为 true；workflow 首选判断字段
+  aborted:
+    description: deadline 触发且曾进入优雅中止流程
+  force-killed:
+    description: 3× SIGINT 后平台强杀（Windows taskkill / Unix SIGKILL 进程组）
+  task-succeeded:
+    description: 子进程 exit code === 0
+  exit-code:
+    description: 子进程退出码；信号终止时为空
+
+runs:
+  using: node24
+  main: ../../dist/watchdog/run/index.js

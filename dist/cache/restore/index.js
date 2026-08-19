@@ -4,6 +4,7 @@ import { readBooleanInput, readPathInput, readPositiveIntInput, runAction } from
 import { withRetry } from "../../base/retry.js";
 import { readCacheKeyInputs } from "../lib/read-cache-keys.js";
 import { deleteStaleFamilyKeys, resolveNewestCacheKey } from "../lib/cache-list.js";
+// 写入 restore action 全部 outputs
 function applyRestoreOutputs(outputs) {
     core.setOutput("cache-exists", outputs.exists ? "true" : "false");
     core.setOutput("cache-used", outputs.used ? "true" : "false");

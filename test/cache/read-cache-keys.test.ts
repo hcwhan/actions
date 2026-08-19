@@ -1,7 +1,9 @@
+
 import * as core from "@actions/core";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { readCacheKeyInput, readCacheKeyInputs } from "@/cache/lib/read-cache-keys.js";
+
 
 vi.mock("@actions/core", () => ({
   getInput: vi.fn(),
@@ -9,11 +11,15 @@ vi.mock("@actions/core", () => ({
   setFailed: vi.fn(),
 }));
 
+// mock core.getInput
 const mockedGetInput = vi.mocked(core.getInput);
 
+// 测试用 family-key
 const FAMILY_KEY = "fa2-ck-gfx120x-serial";
+// 测试用 cache-key
 const CACHE_KEY = "fa2-ck-gfx120x-serial-v7-lock[abc]";
 
+// 按 name 返回 family-key / cache-key mock 值
 function mockCacheKeyInputs(familyKey: string, cacheKey: string): void {
   mockedGetInput.mockImplementation((name) => {
     if (name === "family-key") {

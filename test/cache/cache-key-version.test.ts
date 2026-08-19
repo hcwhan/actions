@@ -1,8 +1,12 @@
+
 import { describe, expect, it, vi } from "vitest";
 
 import { buildVersionedCacheKey, pickNewestVersionedKey } from "@/cache/lib/cache-key-version.js";
 
+
+// 测试用 family-key
 const FAMILY_KEY = "fa2-ck-gfx120x-serial";
+// 测试用 cache-key
 const CACHE_KEY = "fa2-ck-gfx120x-serial-v7-lock[abc]";
 
 describe("cache-key-version", () => {

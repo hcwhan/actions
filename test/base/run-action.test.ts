@@ -1,7 +1,9 @@
+
 import * as core from "@actions/core";
 import { describe, expect, it, vi } from "vitest";
 
 import { runAction } from "@/base/action-input.js";
+
 
 vi.mock("@actions/core", () => ({
   getInput: vi.fn(),
@@ -9,6 +11,7 @@ vi.mock("@actions/core", () => ({
   setFailed: vi.fn(),
 }));
 
+// mock core.setFailed
 const mockedSetFailed = vi.mocked(core.setFailed);
 
 describe("runAction", () => {

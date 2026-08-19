@@ -25,6 +25,7 @@ function isForkPullRequestWriteBlocked() {
     const payload = context.payload;
     return payload.pull_request?.head?.repo?.fork === true;
 }
+// 构造 save 跳过/失败的可读错误信息
 function buildSaveSkippedMessage(cacheKeyFull, reason) {
     return (`cache.saveCache 未写入（cache-key-full=${cacheKeyFull}）：${reason}。` +
         `@actions/cache 已在上方日志记录详情（搜索 "Failed to save" / "cache write denied"）`);

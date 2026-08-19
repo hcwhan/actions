@@ -1,12 +1,20 @@
 import * as core from "../vendor/core/index.js";
 import { errorMessage } from "./errors.js";
-// 解析 action 正整数 input（拒绝小数、尾随字符、零）
+// 解析 action 正整数 input（拒绝小数、尾随字符、0）
 function parsePositiveInt(value, name) {
     const trimmed = value.trim();
     if (!trimmed) {
         throw new Error(`${name} 无效：空值`);
     }
     if (!/^[1-9]\d*$/.test(trimmed)) {
+        throw new Error(`${name} 无效：${value}`);
+    }
+    return Number.parseInt(trimmed, 10);
+}
+// 解析非负整数 input（0 合法）
+function parseNonNegativeInt(value, name) {
+    const trimmed = value.trim();
+    if (!/^\d+$/.test(trimmed)) {
         throw new Error(`${name} 无效：${value}`);
     }
     return Number.parseInt(trimmed, 10);
@@ -28,6 +36,10 @@ function parseBoolean(value, name) {
 // 读取正整数 action input（默认值由 action.yml 声明）
 export function readPositiveIntInput(name) {
     return parsePositiveInt(core.getInput(name), name);
+}
+// 读取非负整数 action input（默认值由 action.yml 声明）
+export function readNonNegativeIntInput(name) {
+    return parseNonNegativeInt(core.getInput(name), name);
 }
 // 读取布尔 action input（默认值由 action.yml 声明）
 export function readBooleanInput(name) {

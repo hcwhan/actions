@@ -1,6 +1,8 @@
+
 import { describe, expect, it } from "vitest";
 
 import { errorMessage, toError } from "@/base/errors.js";
+
 
 describe("errors", () => {
   it("errorMessage 提取 Error.message", () => {

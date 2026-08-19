@@ -1,0 +1,10 @@
+name: Watchdog Job Start
+description: 在 job 最早阶段记录 UTC epoch 毫秒，供 watchdog/run 计算 deadline。
+
+outputs:
+  job-start-time:
+    description: UTC epoch 毫秒字符串
+
+runs:
+  using: node24
+  main: ../../dist/watchdog/job-start/index.js

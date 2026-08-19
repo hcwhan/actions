@@ -1,3 +1,4 @@
+
 import * as core from "@actions/core";
 import * as cache from "@actions/cache";
 
@@ -6,12 +7,15 @@ import { withRetry } from "@/base/retry.js";
 import { readCacheKeyInputs } from "../lib/read-cache-keys.js";
 import { deleteStaleFamilyKeys, resolveNewestCacheKey } from "../lib/cache-list.js";
 
+
+// restore action outputs 结构
 interface RestoreOutputs {
   exists: boolean;
   used: boolean;
   cacheKeyFull: string;
 }
 
+// 写入 restore action 全部 outputs
 function applyRestoreOutputs(outputs: RestoreOutputs): void {
   core.setOutput("cache-exists", outputs.exists ? "true" : "false");
   core.setOutput("cache-used", outputs.used ? "true" : "false");

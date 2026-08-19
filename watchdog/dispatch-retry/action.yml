@@ -1,0 +1,36 @@
+name: Watchdog Dispatch Retry
+description: 校验 should-retry 后 workflow_dispatch 重试 run，并等待 concurrency 取消当前 run。
+
+inputs:
+  should-retry:
+    description: 来自 watchdog/run output；必须为 true 才继续
+    required: true
+  use-cache:
+    description: 必须为 true 才 dispatch retry
+    required: true
+  retry-count:
+    description: 当前 retry 计数（dispatch 时递增 1 写入 workflow inputs）
+    required: true
+  max-retry-count:
+    description: 最大 retry 次数（retry-count >= 此值时报错退出）
+    required: false
+    default: "8"
+  workflow-file:
+    description: 目标 workflow 文件名（如 build-pytorch-ck-gfx120x-serial.yml）
+    required: true
+  ref:
+    description: dispatch ref（默认 GITHUB_REF_NAME / github.ref_name）
+    required: false
+    default: ""
+  dispatch-inputs:
+    description: JSON 对象字符串，合并进 workflow_dispatch inputs
+    required: false
+    default: "{}"
+  github-token:
+    description: createWorkflowDispatch 认证 token
+    required: false
+    default: ${{ github.token }}
+
+runs:
+  using: node24
+  main: ../../dist/watchdog/dispatch-retry/index.js

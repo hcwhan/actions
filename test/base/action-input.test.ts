@@ -1,7 +1,9 @@
+
 import * as core from "@actions/core";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import { readBooleanInput, readPathInput, readPositiveIntInput } from "@/base/action-input.js";
+import { readBooleanInput, readNonNegativeIntInput, readPathInput, readPositiveIntInput } from "@/base/action-input.js";
+
 
 vi.mock("@actions/core", () => ({
   getInput: vi.fn(),
@@ -9,6 +11,7 @@ vi.mock("@actions/core", () => ({
   setFailed: vi.fn(),
 }));
 
+// mock core.getInput
 const mockedGetInput = vi.mocked(core.getInput);
 
 describe("action-input", () => {
@@ -41,6 +44,27 @@ describe("action-input", () => {
 
     mockedGetInput.mockReturnValue("0");
     expect(() => readPositiveIntInput("api-try-count")).toThrow(/api-try-count 无效：0/);
+  });
+
+  it("readNonNegativeIntInput 接受 0 与正整数", () => {
+    mockedGetInput.mockReturnValue("0");
+    expect(readNonNegativeIntInput("retry-count")).toBe(0);
+    expect(mockedGetInput).toHaveBeenCalledWith("retry-count");
+
+    mockedGetInput.mockReturnValue(" 8 ");
+    expect(readNonNegativeIntInput("max-retry-count")).toBe(8);
+    expect(mockedGetInput).toHaveBeenCalledWith("max-retry-count");
+  });
+
+  it("readNonNegativeIntInput 拒绝小数与非整数", () => {
+    mockedGetInput.mockReturnValue("3.9");
+    expect(() => readNonNegativeIntInput("retry-count")).toThrow(/retry-count 无效：3.9/);
+
+    mockedGetInput.mockReturnValue("10abc");
+    expect(() => readNonNegativeIntInput("retry-count")).toThrow(/retry-count 无效：10abc/);
+
+    mockedGetInput.mockReturnValue("");
+    expect(() => readNonNegativeIntInput("retry-count")).toThrow(/retry-count 无效：/);
   });
 
   it("readBooleanInput 解析 true/false", () => {

@@ -1,5 +1,7 @@
+
 import * as cache from "@actions/cache";
 import { context } from "@actions/github";
+
 
 // saveCache 返回 cacheId < 0 时抛出；retryable=false 表示重试无意义（只读 token / cache-mode 等）
 export class CacheSaveSkippedError extends Error {
@@ -30,6 +32,7 @@ function isForkPullRequestWriteBlocked(): boolean {
   return payload.pull_request?.head?.repo?.fork === true;
 }
 
+// 构造 save 跳过/失败的可读错误信息
 function buildSaveSkippedMessage(cacheKeyFull: string, reason: string): string {
   return (
     `cache.saveCache 未写入（cache-key-full=${cacheKeyFull}）：${reason}。` +
