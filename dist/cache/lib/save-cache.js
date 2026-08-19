@@ -1,5 +1,5 @@
-import * as cache from "../vendor/cache/index.js";
-import { context } from "../vendor/github/index.js";
+import * as cache from "../../vendor/cache/index.js";
+import { context } from "../../vendor/github/index.js";
 // saveCache 返回 cacheId < 0 时抛出；retryable=false 表示重试无意义（只读 token / cache-mode 等）
 export class CacheSaveSkippedError extends Error {
     retryable;

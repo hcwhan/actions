@@ -1,5 +1,5 @@
-import * as core from "../vendor/core/index.js";
-import { context } from "../vendor/github/index.js";
+import * as core from "../../vendor/core/index.js";
+import { context } from "../../vendor/github/index.js";
 // 从 @actions/github context 读取仓库坐标
 export function getGithubRepoContext() {
     const { owner, repo } = context.repo;

@@ -1,4 +1,4 @@
-import * as core from "../vendor/core/index.js";
+import * as core from "../../vendor/core/index.js";
 import { readCacheKeyInput, readPositiveIntInput, runAction } from "../lib/action-input.js";
 import { resolveNewestCacheKey } from "../lib/cache-list.js";
 // lookup action 主流程：只读解析最新 key

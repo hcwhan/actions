@@ -1,4 +1,4 @@
-import * as core from "../vendor/core/index.js";
+import * as core from "../../vendor/core/index.js";
 import { errorMessage } from "./errors.js";
 import { MAX_CACHE_KEY_BASE_LENGTH } from "./key-format.js";
 // 解析 action 正整数 input（拒绝小数、尾随字符、零）

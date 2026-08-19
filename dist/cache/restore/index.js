@@ -1,5 +1,5 @@
-import * as core from "../vendor/core/index.js";
-import * as cache from "../vendor/cache/index.js";
+import * as core from "../../vendor/core/index.js";
+import * as cache from "../../vendor/cache/index.js";
 import { readBooleanInput, readCacheKeyInputs, readPathInput, readPositiveIntInput, runAction } from "../lib/action-input.js";
 import { deleteStaleFamilyKeys, resolveNewestCacheKey } from "../lib/cache-list.js";
 import { withRetry } from "../lib/retry.js";

@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 
-import { buildVersionedCacheKey, pickNewestVersionedKey } from "../src/lib/key-format.js";
+import { buildVersionedCacheKey, pickNewestVersionedKey } from "../../src/cache/lib/key-format.js";
 
 const FAMILY_KEY = "fa2-ck-gfx120x-serial";
 const CACHE_KEY = "fa2-ck-gfx120x-serial-v7-lock[abc]";

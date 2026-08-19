@@ -1,12 +1,12 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { pollUntilCacheExists } from "../src/lib/cache-verify.js";
+import { pollUntilCacheExists } from "../../src/cache/lib/cache-verify.js";
 
-vi.mock("../src/lib/cache-list.js", () => ({
+vi.mock("../../src/cache/lib/cache-list.js", () => ({
   cacheKeyFullExists: vi.fn(),
 }));
 
-import { cacheKeyFullExists } from "../src/lib/cache-list.js";
+import { cacheKeyFullExists } from "../../src/cache/lib/cache-list.js";
 
 const mockedExists = vi.mocked(cacheKeyFullExists);
 

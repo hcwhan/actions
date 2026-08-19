@@ -1,7 +1,7 @@
 import * as core from "@actions/core";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import { readCacheKeyInput, readCacheKeyInputs, readPathInput, readPositiveIntInput } from "../src/lib/action-input.js";
+import { readCacheKeyInput, readCacheKeyInputs, readPathInput, readPositiveIntInput } from "../../src/cache/lib/action-input.js";
 
 vi.mock("@actions/core", () => ({
   getInput: vi.fn(),

@@ -1,5 +1,5 @@
-import * as core from "../vendor/core/index.js";
-import { getOctokit } from "../vendor/github/index.js";
+import * as core from "../../vendor/core/index.js";
+import { getOctokit } from "../../vendor/github/index.js";
 import { errorMessage } from "./errors.js";
 import { getGithubRepoContext, getGithubToken } from "./github-context.js";
 import { pickNewestVersionedKey } from "./key-format.js";

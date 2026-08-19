@@ -5,7 +5,8 @@
   "description": "版本化 GitHub Actions cache：save / lookup / restore",
   "type": "module",
   "scripts": {
-    "build": "tsc -p tsconfig.build.json && node scripts/build-dist.mjs",
+    "build": "npm run build:cache",
+    "build:cache": "tsc -p tsconfig.build.json && node scripts/build-cache.mjs",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest"

@@ -6,7 +6,8 @@ import { fileURLToPath } from "node:url";
 const scriptDir = path.dirname(fileURLToPath(import.meta.url));
 const rootDir = path.join(scriptDir, "..");
 
-const ENTRY_NAMES = ["save", "lookup", "restore"];
+const ENTRY_NAMES = ["cache/save", "cache/lookup", "cache/restore"];
+const LIB_DIR = "dist/cache/lib";
 
 // ESM vendor bundle 内嵌的 CJS 依赖（如 @actions/http-client → tunnel）会 dynamic require Node 内置模块；
 // GitHub Actions node24 以 ESM 加载 action 时没有全局 require，需注入 createRequire shim。
@@ -78,17 +79,27 @@ function removeTempFile(relativePath) {
   }
 }
 
-// @actions/* → dist/vendor 映射（lib / entry 路径层级相同，均用 ../vendor）
+// @actions/* → dist/vendor 子路径（相对 dist/ 根目录）
 const VENDOR_IMPORT_MAP = {
-  "@actions/core": "../vendor/core/index.js",
-  "@actions/cache": "../vendor/cache/index.js",
-  "@actions/github": "../vendor/github/index.js",
+  "@actions/core": "core/index.js",
+  "@actions/cache": "cache/index.js",
+  "@actions/github": "github/index.js",
 };
+
+function vendorImportPrefix(fromFilePath) {
+  const distDir = path.join(rootDir, "dist");
+  const fileDir = path.dirname(fromFilePath);
+  const relativeDir = path.relative(distDir, fileDir);
+  const depth = relativeDir === "" ? 0 : relativeDir.split(path.sep).length;
+  return depth === 0 ? "./vendor" : `${"../".repeat(depth)}vendor`;
+}
 
 // 将 tsc 产物中所有 from "@actions/…" 改为对应 vendor 子包
 function rewriteVendorImports(filePath) {
   let content = readFileSync(filePath, "utf8");
-  for (const [pkg, vendorPath] of Object.entries(VENDOR_IMPORT_MAP)) {
+  const vendorPrefix = vendorImportPrefix(filePath);
+  for (const [pkg, vendorSubpath] of Object.entries(VENDOR_IMPORT_MAP)) {
+    const vendorPath = `${vendorPrefix}/${vendorSubpath}`;
     const pattern = new RegExp(`from "${pkg.replace("/", "\\/")}"`, "g");
     content = content.replace(pattern, `from "${vendorPath}"`);
   }
@@ -124,8 +135,10 @@ function removeLegacyArtifacts() {
     "dist/vendor/index.js",
     "dist/vendor/index.js.map",
     "dist/vendor/http-client",
-    "dist/lib/index.js",
-    "dist/lib/index.js.map",
+    "dist/lib",
+    "dist/save",
+    "dist/lookup",
+    "dist/restore",
   ];
 
   for (const relativePath of legacyPaths) {
@@ -138,7 +151,7 @@ function removeLegacyArtifacts() {
 
 // lib 保留 tsc 多文件结构，仅改写 @actions/* import
 function prepareLibFiles() {
-  const libDir = path.join(rootDir, "dist/lib");
+  const libDir = path.join(rootDir, LIB_DIR);
   for (const name of readdirSync(libDir)) {
     if (!name.endsWith(".js")) {
       continue;

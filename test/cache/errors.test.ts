@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { errorMessage, toError } from "../src/lib/errors.js";
+import { errorMessage, toError } from "../../src/cache/lib/errors.js";
 
 describe("errors", () => {
   it("errorMessage 提取 Error.message", () => {

@@ -1,7 +1,7 @@
 import * as core from "@actions/core";
 import { describe, expect, it, vi } from "vitest";
 
-import { runAction } from "../src/lib/action-input.js";
+import { runAction } from "../../src/cache/lib/action-input.js";
 
 vi.mock("@actions/core", () => ({
   getInput: vi.fn(),
