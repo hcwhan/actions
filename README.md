@@ -40,7 +40,7 @@ permissions:
   contents: read
 
 steps:
-  - uses: hcwhan/actions/cache/save@v1
+  - uses: hcwhan/actions/cache/save@main
     if: always()                                 # 典型置于 job 末尾
     id: cache-save
     with:
@@ -53,13 +53,13 @@ steps:
       cleanup-stale: "true"                      # 可选，默认 true：save 成功后是否删除同族 key 下旧条目
       api-try-count: "3"                         # 可选，单次 saveCache / GitHub API 调用的最多尝试次数（含首次，默认 3 次）
 
-  - uses: hcwhan/actions/cache/lookup@v1
+  - uses: hcwhan/actions/cache/lookup@main
     id: cache-lookup
     with:
       cache-key: ${{ env.CACHE_KEY }}
       api-try-count: "3"                         # 可选，单次 GitHub API 调用的最多尝试次数（含首次，默认 3 次）
 
-  - uses: hcwhan/actions/cache/restore@v1
+  - uses: hcwhan/actions/cache/restore@main
     id: cache-restore
     with:
       path: ./build
