@@ -34,4 +34,4 @@ outputs:
 
 runs:
   using: node24
-  main: ../../dist/cache/restore/index.js
+  main: ../../../dist/cache/restore/index.js

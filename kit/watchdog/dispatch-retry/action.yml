@@ -33,4 +33,4 @@ inputs:
 
 runs:
   using: node24
-  main: ../../dist/watchdog/dispatch-retry/index.js
+  main: ../../../dist/watchdog/dispatch-retry/index.js

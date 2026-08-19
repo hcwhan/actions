@@ -1,12 +1,12 @@
 # hcwhan/actions
 
-可复用的 GitHub Actions 集合：**cache**（save / lookup / restore）+ **watchdog**（job-start / run / dispatch-retry）。消费方引用 **`@main`**（如 `hcwhan/actions/cache/save@main`）。
+可复用的 GitHub Actions 集合：**cache**（save / lookup / restore）+ **watchdog**（job-start / run / dispatch-retry），action 声明位于 **`kit/`**。消费方引用 **`@main`**（如 `hcwhan/actions/kit/cache/save@main`）。
 
 ## 仓库布局
 
 | 路径 | 说明 |
 |------|------|
-| `cache/`、`watchdog/` | action 声明（`node24` → `dist/<group>/*/index.js`） |
+| `kit/cache/`、`kit/watchdog/` | action 声明（`node24` → `dist/<group>/*/index.js`） |
 | `src/base/` | 跨 action 组共享层 |
 | `src/cache/`、`src/watchdog/` | 各组 entry + `lib/` |
 | `test/base/`、`test/cache/`、`test/watchdog/` | vitest 单测 |

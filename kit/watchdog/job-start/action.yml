@@ -7,4 +7,4 @@ outputs:
 
 runs:
   using: node24
-  main: ../../dist/watchdog/job-start/index.js
+  main: ../../../dist/watchdog/job-start/index.js

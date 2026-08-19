@@ -1,11 +1,11 @@
 # hcwhan/actions
 
-可复用的 GitHub Actions 集合：
+可复用的 GitHub Actions 集合（`kit/` 套件）：
 
 - **cache** — 带 UTC 时间后缀的版本化 GHA cache（save / lookup / restore）
 - **watchdog** — job deadline 看门狗 + 超时重试 dispatch（job-start / run / dispatch-retry）
 
-所有 action 均使用 **Node 24** 运行时（`action.yml` 中 `using: node24`）。消费方引用 **`@main`**（如 `hcwhan/actions/cache/save@main`）。
+所有 action 均使用 **Node 24** 运行时（`action.yml` 中 `using: node24`）。消费方引用 **`@main`**（如 `hcwhan/actions/kit/cache/save@main`）。
 
 ---
 
@@ -13,9 +13,9 @@
 
 | Action      | 路径            | 作用                                                                  |
 | ----------- | --------------- | --------------------------------------------------------------------- |
-| **save**    | `cache/save`    | 追加 UTC 时间后缀 → save → 轮询 API verify → 可选 save 成功后清理同族旧 key |
-| **lookup**  | `cache/lookup`  | 按 cache-key 前缀列举并解析最新 key（只读）                           |
-| **restore** | `cache/restore` | 恢复 cache-key 槽位最新 key；可选 restore 成功后清理同族 key 下旧条目 |
+| **save**    | `kit/cache/save`    | 追加 UTC 时间后缀 → save → 轮询 API verify → 可选 save 成功后清理同族旧 key |
+| **lookup**  | `kit/cache/lookup`  | 按 cache-key 前缀列举并解析最新 key（只读）                           |
+| **restore** | `kit/cache/restore` | 恢复 cache-key 槽位最新 key；可选 restore 成功后清理同族 key 下旧条目 |
 
 ### Key 格式
 
@@ -45,7 +45,7 @@ permissions:
   contents: read
 
 steps:
-  - uses: hcwhan/actions/cache/save@main
+  - uses: hcwhan/actions/kit/cache/save@main
     if: always()                                 # 典型置于 job 末尾
     id: cache-save
     with:
@@ -58,13 +58,13 @@ steps:
       cleanup-stale: "true"                      # 可选，默认 true：save 成功后是否删除同族 key 下旧条目
       api-try-count: "3"                         # 可选，单次 saveCache / GitHub API 调用的最多尝试次数（含首次，默认 3 次）
 
-  - uses: hcwhan/actions/cache/lookup@main
+  - uses: hcwhan/actions/kit/cache/lookup@main
     id: cache-lookup
     with:
       cache-key: ${{ env.CACHE_KEY }}
       api-try-count: "3"                         # 可选，单次 GitHub API 调用的最多尝试次数（含首次，默认 3 次）
 
-  - uses: hcwhan/actions/cache/restore@main
+  - uses: hcwhan/actions/kit/cache/restore@main
     id: cache-restore
     with:
       path: ./build
@@ -82,9 +82,9 @@ steps:
 
 | Action              | 路径                      | 作用 |
 | ------------------- | ------------------------- | ---- |
-| **job-start**       | `watchdog/job-start`      | job 最早阶段记录 UTC epoch 毫秒（output `job-start-time`） |
-| **run**             | `watchdog/run`            | spawn 子进程 + deadline 看门狗；graceful abort 时 output `should-retry` |
-| **dispatch-retry**  | `watchdog/dispatch-retry` | 校验 `should-retry` 后 `workflow_dispatch` 重试，并等待 concurrency 取消当前 run |
+| **job-start**       | `kit/watchdog/job-start`      | job 最早阶段记录 UTC epoch 毫秒（output `job-start-time`） |
+| **run**             | `kit/watchdog/run`            | spawn 子进程 + deadline 看门狗；graceful abort 时 output `should-retry` |
+| **dispatch-retry**  | `kit/watchdog/dispatch-retry` | 校验 `should-retry` 后 `workflow_dispatch` 重试，并等待 concurrency 取消当前 run |
 
 ### 行为概要
 
@@ -118,11 +118,11 @@ jobs:
     steps:
       - name: Record job start
         id: job-start
-        uses: hcwhan/actions/watchdog/job-start@main
+        uses: hcwhan/actions/kit/watchdog/job-start@main
 
       - name: Run build with watchdog
         id: run-task
-        uses: hcwhan/actions/watchdog/run@main
+        uses: hcwhan/actions/kit/watchdog/run@main
         with:
           working-directory: ${{ github.workspace }}
           command: ninja
@@ -134,7 +134,7 @@ jobs:
     needs: build
     if: always() && !cancelled() && needs.build.outputs.should-retry == 'true'
     steps:
-      - uses: hcwhan/actions/watchdog/dispatch-retry@main
+      - uses: hcwhan/actions/kit/watchdog/dispatch-retry@main
         with:
           should-retry: ${{ needs.build.outputs.should-retry }}
           use-cache: "true"
