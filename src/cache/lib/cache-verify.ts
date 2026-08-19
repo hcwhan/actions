@@ -1,5 +1,5 @@
 import { cacheKeyFullExists, type CacheApiOptions } from "./cache-list.js";
-import { sleep } from "./retry.js";
+import { sleep } from "@/base/retry.js";
 
 // save 后轮询 verify 的参数
 interface PollCacheExistsOptions extends CacheApiOptions {

@@ -1,5 +1,5 @@
-import * as core from "../../vendor/core/index.js";
-import { context } from "../../vendor/github/index.js";
+import * as core from "../vendor/core/index.js";
+import { context, getOctokit } from "../vendor/github/index.js";
 // 从 @actions/github context 读取仓库坐标
 export function getGithubRepoContext() {
     const { owner, repo } = context.repo;
@@ -23,5 +23,9 @@ export function getGithubToken() {
         throw new Error("GITHUB_TOKEN 缺失（请设置 github-token input 或 GITHUB_TOKEN 环境变量）");
     }
     return token;
+}
+// 带 GITHUB_TOKEN 的 Octokit 客户端（含 GHA 代理 / GHES 适配）
+export function createOctokit() {
+    return getOctokit(getGithubToken());
 }
 //# sourceMappingURL=github-context.js.map

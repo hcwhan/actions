@@ -82,4 +82,4 @@ npm run build          # 构建全部 action 类型（当前等同 build:cache�
 npm run build:cache    # 仅构建 cache actions
 ```
 
-Node action 构建流程（`scripts/build-cache.mjs`）：`tsc` 编译 `src/cache` 下 entry + lib（多文件，与 `src/cache/lib` 一一对应，产物在 `dist/cache/`）→ esbuild 打包 3 个 `dist/vendor/*/index.js`（对应 `@actions/core`、`@actions/github`、`@actions/cache` 三个直接依赖；传递依赖 `@actions/http-client` 并入 `vendor/core`）→ 将 lib / entry 中的 `@actions/*` import 改写为 vendor 相对路径。
+Node action 构建流程（`scripts/build-cache.mjs`）：清空 `dist/` → `tsc` 编译 `src/` → esbuild 打包 3 个 `dist/vendor/*/index.js` → 将 lib / entry 中的 `@actions/*` 与 `@/*` import 改写为 vendor / 相对路径。

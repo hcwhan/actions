@@ -2,7 +2,7 @@ import * as cache from "@actions/cache";
 import { context } from "@actions/github";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import { CacheSaveSkippedError, saveCacheOnce } from "../../src/cache/lib/save-cache.js";
+import { CacheSaveSkippedError, saveCacheOnce } from "@/cache/lib/save-cache.js";
 
 vi.mock("@actions/cache", () => ({
   saveCache: vi.fn(),

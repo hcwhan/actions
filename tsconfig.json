@@ -1,4 +1,5 @@
 {
+  // @/* 路径别名：TS 7 起 paths 相对 tsconfig.json 目录解析，无需 baseUrl
   "compilerOptions": {
     "target": "ES2022",
     "module": "NodeNext",
@@ -9,7 +10,10 @@
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
     "noEmit": true,
-    "types": ["node", "vitest/globals"]
+    "types": ["node", "vitest/globals"],
+    "paths": {
+      "@/*": ["./src/*"]
+    }
   },
   "include": ["src/**/*.ts", "test/**/*.ts"],
   "exclude": ["node_modules", "dist"]

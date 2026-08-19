@@ -1,6 +1,7 @@
 import * as core from "@actions/core";
 
-import { readCacheKeyInput, readPositiveIntInput, runAction } from "../lib/action-input.js";
+import { readPositiveIntInput, runAction } from "@/base/action-input.js";
+import { readCacheKeyInput } from "../lib/read-cache-keys.js";
 import { resolveNewestCacheKey } from "../lib/cache-list.js";
 
 // lookup action 主流程：只读解析最新 key

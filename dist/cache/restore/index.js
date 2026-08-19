@@ -1,8 +1,9 @@
 import * as core from "../../vendor/core/index.js";
 import * as cache from "../../vendor/cache/index.js";
-import { readBooleanInput, readCacheKeyInputs, readPathInput, readPositiveIntInput, runAction } from "../lib/action-input.js";
+import { readBooleanInput, readPathInput, readPositiveIntInput, runAction } from "../../base/action-input.js";
+import { withRetry } from "../../base/retry.js";
+import { readCacheKeyInputs } from "../lib/read-cache-keys.js";
 import { deleteStaleFamilyKeys, resolveNewestCacheKey } from "../lib/cache-list.js";
-import { withRetry } from "../lib/retry.js";
 function applyRestoreOutputs(outputs) {
     core.setOutput("cache-exists", outputs.exists ? "true" : "false");
     core.setOutput("cache-used", outputs.used ? "true" : "false");

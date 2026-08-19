@@ -1,10 +1,11 @@
 import * as core from "../../vendor/core/index.js";
-import { readBooleanInput, readCacheKeyInputs, readPathInput, readPositiveIntInput, runAction } from "../lib/action-input.js";
+import { readBooleanInput, readPathInput, readPositiveIntInput, runAction } from "../../base/action-input.js";
+import { errorMessage, toError } from "../../base/errors.js";
+import { withRetry } from "../../base/retry.js";
+import { readCacheKeyInputs } from "../lib/read-cache-keys.js";
 import { deleteStaleFamilyKeys } from "../lib/cache-list.js";
 import { pollUntilCacheExists } from "../lib/cache-verify.js";
-import { buildVersionedCacheKey } from "../lib/key-format.js";
-import { errorMessage, toError } from "../lib/errors.js";
-import { withRetry } from "../lib/retry.js";
+import { buildVersionedCacheKey } from "../lib/cache-key-version.js";
 import { isSaveRetryable, saveCacheOnce } from "../lib/save-cache.js";
 // save action 主流程：save → verify → 清理同族旧 key
 async function run() {

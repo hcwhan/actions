@@ -1,11 +1,11 @@
 import { describe, expect, it, vi } from "vitest";
 
-import { buildVersionedCacheKey, pickNewestVersionedKey } from "../../src/cache/lib/key-format.js";
+import { buildVersionedCacheKey, pickNewestVersionedKey } from "@/cache/lib/cache-key-version.js";
 
 const FAMILY_KEY = "fa2-ck-gfx120x-serial";
 const CACHE_KEY = "fa2-ck-gfx120x-serial-v7-lock[abc]";
 
-describe("key-format", () => {
+describe("cache-key-version", () => {
   it("buildVersionedCacheKey 追加 UTC 后缀 -YYYY.MM.DD-HH.mm.ss-SSS", () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date(Date.UTC(2026, 7, 18, 22, 15, 39, 123)));

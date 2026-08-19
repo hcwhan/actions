@@ -1,3 +1,5 @@
+import { pad } from "@/base/pad.js";
+
 // GHA cache key 上限（@actions/cache ValidationError）
 export const GHA_CACHE_KEY_MAX_LENGTH = 512;
 
@@ -10,23 +12,13 @@ export const MAX_CACHE_KEY_BASE_LENGTH = GHA_CACHE_KEY_MAX_LENGTH - VERSIONED_TI
 // 生成 UTC 时间戳后缀
 function formatTimestampSuffix(date: Date): string {
   const y = date.getUTCFullYear();
-  const mo = pad2(date.getUTCMonth() + 1);
-  const d = pad2(date.getUTCDate());
-  const h = pad2(date.getUTCHours());
-  const mi = pad2(date.getUTCMinutes());
-  const s = pad2(date.getUTCSeconds());
-  const ms = pad3(date.getUTCMilliseconds());
+  const mo = pad(date.getUTCMonth() + 1, 2);
+  const d = pad(date.getUTCDate(), 2);
+  const h = pad(date.getUTCHours(), 2);
+  const mi = pad(date.getUTCMinutes(), 2);
+  const s = pad(date.getUTCSeconds(), 2);
+  const ms = pad(date.getUTCMilliseconds(), 3);
   return `-${y}.${mo}.${d}-${h}.${mi}.${s}-${ms}`;
-}
-
-// 两位零填充
-function pad2(n: number): string {
-  return String(n).padStart(2, "0");
-}
-
-// 三位零填充（毫秒）
-function pad3(n: number): string {
-  return String(n).padStart(3, "0");
 }
 
 // 校验 UTC 时间戳各字段合法且与 Date  roundtrip 一致

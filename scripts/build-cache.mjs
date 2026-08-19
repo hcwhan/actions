@@ -1,4 +1,5 @@
 import * as esbuild from "esbuild";
+import { spawnSync } from "node:child_process";
 import { existsSync, mkdirSync, readFileSync, readdirSync, rmSync, unlinkSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -8,6 +9,7 @@ const rootDir = path.join(scriptDir, "..");
 
 const ENTRY_NAMES = ["cache/save", "cache/lookup", "cache/restore"];
 const LIB_DIR = "dist/cache/lib";
+const BASE_DIR = "dist/base";
 
 // ESM vendor bundle 内嵌的 CJS 依赖（如 @actions/http-client → tunnel）会 dynamic require Node 内置模块；
 // GitHub Actions node24 以 ESM 加载 action 时没有全局 require，需注入 createRequire shim。
@@ -94,7 +96,29 @@ function vendorImportPrefix(fromFilePath) {
   return depth === 0 ? "./vendor" : `${"../".repeat(depth)}vendor`;
 }
 
-// 将 tsc 产物中所有 from "@actions/…" 改为对应 vendor 子包
+// @/… → 相对 dist/ 的路径（@ 映射 src → dist）
+function resolveAliasImportPath(fileDir, subpath) {
+  const targetPath = path.join(rootDir, "dist", subpath);
+  let relativePath = path.relative(fileDir, targetPath).split(path.sep).join("/");
+  if (!relativePath.startsWith(".")) {
+    relativePath = `./${relativePath}`;
+  }
+  return relativePath;
+}
+
+// 将 tsc 产物中 @/… import 改为相对路径（静态 import / export from / 动态 import）
+function rewriteAliasImports(filePath) {
+  let content = readFileSync(filePath, "utf8");
+  const fileDir = path.dirname(filePath);
+  const toRelative = (subpath) => resolveAliasImportPath(fileDir, subpath);
+
+  content = content.replace(/\bfrom "@\/([^"]+)"/g, (_match, subpath) => `from "${toRelative(subpath)}"`);
+  content = content.replace(/\bimport\s*\(\s*"@\/([^"]+)"\s*\)/g, (_match, subpath) => `import("${toRelative(subpath)}")`);
+  content = content.replace(/\bimport "@\/([^"]+)"/g, (_match, subpath) => `import "${toRelative(subpath)}"`);
+
+  writeFileSync(filePath, content);
+}
+
 function rewriteVendorImports(filePath) {
   let content = readFileSync(filePath, "utf8");
   const vendorPrefix = vendorImportPrefix(filePath);
@@ -104,6 +128,11 @@ function rewriteVendorImports(filePath) {
     content = content.replace(pattern, `from "${vendorPath}"`);
   }
   writeFileSync(filePath, content);
+}
+
+function rewriteDistImports(filePath) {
+  rewriteVendorImports(filePath);
+  rewriteAliasImports(filePath);
 }
 
 // 按 VENDOR_PACKAGES 顺序打包 dist/vendor/{name}/index.js
@@ -130,45 +159,56 @@ async function bundleVendors() {
   }
 }
 
-function removeLegacyArtifacts() {
-  const legacyPaths = [
-    "dist/vendor/index.js",
-    "dist/vendor/index.js.map",
-    "dist/vendor/http-client",
-    "dist/lib",
-    "dist/save",
-    "dist/lookup",
-    "dist/restore",
-  ];
+function cleanDist() {
+  const distDir = path.join(rootDir, "dist");
+  if (existsSync(distDir)) {
+    rmSync(distDir, { recursive: true, force: true });
+  }
+}
 
-  for (const relativePath of legacyPaths) {
-    const filePath = path.join(rootDir, relativePath);
-    if (existsSync(filePath)) {
-      rmSync(filePath, { force: true, recursive: true });
+function compileTypeScript() {
+  const tscBin = path.join(rootDir, "node_modules/typescript/bin/tsc");
+  const result = spawnSync(tscBin, ["-p", "tsconfig.build.json"], {
+    cwd: rootDir,
+    stdio: "inherit",
+  });
+  if (result.status !== 0) {
+    process.exit(result.status ?? 1);
+  }
+}
+
+// 递归遍历目录下全部 .js 产物
+function forEachJsFile(dir, callback) {
+  if (!existsSync(dir)) {
+    return;
+  }
+  for (const entry of readdirSync(dir, { withFileTypes: true })) {
+    const fullPath = path.join(dir, entry.name);
+    if (entry.isDirectory()) {
+      forEachJsFile(fullPath, callback);
+    } else if (entry.name.endsWith(".js")) {
+      callback(fullPath);
     }
   }
 }
 
-// lib 保留 tsc 多文件结构，仅改写 @actions/* import
+// lib / base 保留 tsc 多文件结构，改写 @actions/* 与 @/* import
 function prepareLibFiles() {
-  const libDir = path.join(rootDir, LIB_DIR);
-  for (const name of readdirSync(libDir)) {
-    if (!name.endsWith(".js")) {
-      continue;
-    }
-    rewriteVendorImports(path.join(libDir, name));
+  for (const dir of [LIB_DIR, BASE_DIR]) {
+    forEachJsFile(path.join(rootDir, dir), rewriteDistImports);
   }
 }
 
 function prepareEntryFiles() {
   for (const name of ENTRY_NAMES) {
-    rewriteVendorImports(path.join(rootDir, "dist", name, "index.js"));
+    rewriteDistImports(path.join(rootDir, "dist", name, "index.js"));
   }
 }
 
 async function main() {
+  cleanDist();
+  compileTypeScript();
   await bundleVendors();
-  removeLegacyArtifacts();
   prepareLibFiles();
   prepareEntryFiles();
 }

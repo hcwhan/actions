@@ -6,7 +6,7 @@
   "type": "module",
   "scripts": {
     "build": "npm run build:cache",
-    "build:cache": "tsc -p tsconfig.build.json && node scripts/build-cache.mjs",
+    "build:cache": "node scripts/build-cache.mjs",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest"

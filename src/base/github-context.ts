@@ -1,8 +1,8 @@
 import * as core from "@actions/core";
-import { context } from "@actions/github";
+import { context, getOctokit } from "@actions/github";
 
 // 当前 workflow 仓库坐标（Octokit / cache API 共用）
- interface GithubRepoContext {
+interface GithubRepoContext {
   owner: string;
   repo: string;
   ref: string;
@@ -34,4 +34,9 @@ export function getGithubToken(): string {
     throw new Error("GITHUB_TOKEN 缺失（请设置 github-token input 或 GITHUB_TOKEN 环境变量）");
   }
   return token;
+}
+
+// 带 GITHUB_TOKEN 的 Octokit 客户端（含 GHA 代理 / GHES 适配）
+export function createOctokit() {
+  return getOctokit(getGithubToken());
 }

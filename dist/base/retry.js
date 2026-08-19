@@ -1,4 +1,4 @@
-import * as core from "../../vendor/core/index.js";
+import * as core from "../vendor/core/index.js";
 import { errorMessage, toError } from "./errors.js";
 // 异步 sleep
 export async function sleep(ms) {

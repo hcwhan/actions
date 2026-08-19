@@ -1,15 +1,10 @@
 import * as core from "../../vendor/core/index.js";
-import { getOctokit } from "../../vendor/github/index.js";
-import { errorMessage } from "./errors.js";
-import { getGithubRepoContext, getGithubToken } from "./github-context.js";
-import { pickNewestVersionedKey } from "./key-format.js";
-import { withRetry } from "./retry.js";
+import { errorMessage } from "../../base/errors.js";
+import { createOctokit, getGithubRepoContext } from "../../base/github-context.js";
+import { withRetry } from "../../base/retry.js";
+import { pickNewestVersionedKey } from "./cache-key-version.js";
 // cache 列举分页上限（per_page=100，最多 1600 条）
 const MAX_CACHE_LIST_PAGES = 16;
-// 带 GITHUB_TOKEN 的 Octokit 客户端（含 GHA 代理 / GHES 适配）
-function createOctokit() {
-    return getOctokit(getGithubToken());
-}
 // 分页拉取匹配前缀的全部 cache 条目（跳过 id 或 key 缺失项）
 async function paginateActionsCaches(prefix, apiTryCount, retryLabel) {
     const octokit = createOctokit();

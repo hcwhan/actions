@@ -1,7 +1,7 @@
 import * as core from "@actions/core";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import { readCacheKeyInput, readCacheKeyInputs, readPathInput, readPositiveIntInput } from "../../src/cache/lib/action-input.js";
+import { readCacheKeyInput, readCacheKeyInputs } from "@/cache/lib/read-cache-keys.js";
 
 vi.mock("@actions/core", () => ({
   getInput: vi.fn(),
@@ -26,7 +26,7 @@ function mockCacheKeyInputs(familyKey: string, cacheKey: string): void {
   });
 }
 
-describe("action-input", () => {
+describe("read-cache-keys", () => {
   beforeEach(() => {
     mockedGetInput.mockReset();
   });
@@ -69,35 +69,23 @@ describe("action-input", () => {
     expect(() => readCacheKeyInputs()).toThrow(/cache-key 无效：过短/);
   });
 
-  it("readPathInput 解析换行分隔路径", () => {
-    mockedGetInput.mockReturnValue("C:\\a\\build\nC:\\b\\out");
-    expect(readPathInput()).toEqual(["C:\\a\\build", "C:\\b\\out"]);
-    expect(mockedGetInput).toHaveBeenCalledWith("path", { required: true });
-  });
-
-  it("readPathInput 拒绝空 path", () => {
-    mockedGetInput.mockReturnValue("  \n  ");
-    expect(() => readPathInput()).toThrow(/path 无效：至少需要一个目录/);
-  });
-
-  it("readPositiveIntInput 拒绝空值", () => {
-    mockedGetInput.mockReturnValue("");
-    expect(() => readPositiveIntInput("api-try-count")).toThrow(/api-try-count 无效：空值/);
-  });
-
-  it("readPositiveIntInput 拒绝小数与非整数", () => {
-    mockedGetInput.mockReturnValue("3.9");
-    expect(() => readPositiveIntInput("api-try-count")).toThrow(/api-try-count 无效：3.9/);
-
-    mockedGetInput.mockReturnValue("10abc");
-    expect(() => readPositiveIntInput("api-try-count")).toThrow(/api-try-count 无效：10abc/);
-
-    mockedGetInput.mockReturnValue("0");
-    expect(() => readPositiveIntInput("api-try-count")).toThrow(/api-try-count 无效：0/);
-  });
-
   it("readCacheKeyInput 拒绝超过 GHA 上限的 cache-key", () => {
     mockedGetInput.mockReturnValue("a".repeat(489));
     expect(() => readCacheKeyInput()).toThrow(/cache-key 无效：过长/);
+  });
+
+  it("readCacheKeyInputs 拒绝超过 GHA 上限的 cache-key", () => {
+    mockCacheKeyInputs(FAMILY_KEY, "a".repeat(489));
+    expect(() => readCacheKeyInputs()).toThrow(/cache-key 无效：过长/);
+  });
+
+  it("readCacheKeyInput 拒绝非法字符", () => {
+    mockedGetInput.mockReturnValue("invalid key with spaces");
+    expect(() => readCacheKeyInput()).toThrow(/cache-key 无效：包含非法字符/);
+  });
+
+  it("readCacheKeyInputs 拒绝 family-key 非法字符", () => {
+    mockCacheKeyInputs("bad key!", CACHE_KEY);
+    expect(() => readCacheKeyInputs()).toThrow(/family-key 无效：包含非法字符/);
   });
 });

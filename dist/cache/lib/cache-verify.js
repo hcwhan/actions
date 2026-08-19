@@ -1,5 +1,5 @@
 import { cacheKeyFullExists } from "./cache-list.js";
-import { sleep } from "./retry.js";
+import { sleep } from "../../base/retry.js";
 // 轮询直到 cacheKeyFull 在 API 中可见或超时；见到则 true
 export async function pollUntilCacheExists(options) {
     const { cacheKeyFull, apiTryCount, intervalSec, timeoutSec } = options;
