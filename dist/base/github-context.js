@@ -21,7 +21,7 @@ export function getGithubRefName() {
     return refName;
 }
 // 读取 GitHub token（list/delete cache 必需；composite 嵌套调用时需经 github-token input 传入）
-export function getGithubToken() {
+function getGithubToken() {
     const fromInput = core.getInput("github-token").trim();
     if (fromInput) {
         return fromInput;

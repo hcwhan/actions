@@ -3,7 +3,7 @@ import { pad } from "@/base/pad.js";
 
 
 // GHA cache key 上限（@actions/cache ValidationError）
-export const GHA_CACHE_KEY_MAX_LENGTH = 512;
+const GHA_CACHE_KEY_MAX_LENGTH = 512;
 
 // 固定 UTC 后缀宽度：-YYYY.MM.DD-HH.mm.ss-SSS
 export const VERSIONED_TIMESTAMP_SUFFIX_LENGTH = 24;

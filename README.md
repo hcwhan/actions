@@ -88,7 +88,7 @@ steps:
 
 ### 行为概要
 
-- **deadline**：由 `job-start-time` + `limit-hours`（默认 5，支持小数）计算；超时后对子进程最多 3 次 SIGINT（间隔 60s），仍存活则按平台强杀（Windows `taskkill /T /F`；Unix 进程组 `SIGKILL`）。
+- **deadline**：由 `job-start-time` + `limit-hours`（默认 5，支持小数）计算；超时后对进程树最多 5 次 SIGINT（间隔 60s），仍存活则按平台强杀（Windows `taskkill /T /F`；Unix 进程组 `SIGKILL`）。
 - **should-retry**：`aborted && !force-killed && !task-succeeded`；graceful abort 失败（强杀）不触发 retry。
 - **dispatch-retry**：`createWorkflowDispatch` 失败时 `withRetry` 线性退避（最多 3 次，间隔 30s / 60s）；成功后等待 **5 分钟** 期望 concurrency 取消当前 run，超时则 step 失败。
 - **状态传递**：使用 `@actions/core` outputs。

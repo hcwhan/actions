@@ -4,13 +4,22 @@ import { spawn, spawnSync, type ChildProcess } from "node:child_process";
 
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { forceKillProcessTree, spawnAsync } from "@/watchdog/lib/spawn-async.js";
+import {
+  forceKillProcessTree,
+  sendGracefulAbortToProcessTree,
+  spawnAsync,
+} from "@/watchdog/lib/spawn-async.js";
+import { listLiveProcessTreePids } from "@/watchdog/lib/process-tree.js";
 
 
 vi.mock("node:child_process", async (importOriginal) => {
   const orig = await importOriginal<typeof import("node:child_process")>();
   return { ...orig, spawn: vi.fn(), spawnSync: vi.fn() };
 });
+
+vi.mock("@/watchdog/lib/process-tree.js", () => ({
+  listLiveProcessTreePids: vi.fn(() => []),
+}));
 
 // 构造 EventEmitter 型 mock 子进程
 function mockChild(): ChildProcess {
@@ -82,6 +91,131 @@ describe("spawnAsync", () => {
       exitCode: 0,
       signal: null,
     });
+  });
+});
+
+describe("sendGracefulAbortToProcessTree SIGINT delivery", () => {
+  const origPlatform = process.platform;
+  const killSpy = vi.spyOn(process, "kill");
+
+  afterEach(() => {
+    Object.defineProperty(process, "platform", { value: origPlatform });
+    killSpy.mockReset();
+  });
+
+  function mockChildWithPid(pid: number): ChildProcess {
+    return Object.assign(new EventEmitter(), {
+      pid,
+      exitCode: null,
+      signalCode: null,
+      kill: vi.fn(() => true),
+    }) as unknown as ChildProcess;
+  }
+
+  it("win32：process.kill(pid, SIGINT)", () => {
+    Object.defineProperty(process, "platform", { value: "win32" });
+    killSpy.mockReturnValue(true as never);
+    sendGracefulAbortToProcessTree(mockChildWithPid(2000), 2000, 1);
+    expect(killSpy).toHaveBeenCalledWith(2000, "SIGINT");
+  });
+
+  it("unix：先 process.kill(-pid, SIGINT)", () => {
+    Object.defineProperty(process, "platform", { value: "linux" });
+    killSpy.mockReturnValue(true as never);
+    sendGracefulAbortToProcessTree(mockChildWithPid(1234), 1234, 1);
+    expect(killSpy).toHaveBeenCalledWith(-1234, "SIGINT");
+  });
+
+  it("unix 进程组失败时回退单 pid", () => {
+    Object.defineProperty(process, "platform", { value: "linux" });
+    killSpy.mockImplementation((target: number) => {
+      if (target === -1234) {
+        throw new Error("EPERM");
+      }
+      return true as never;
+    });
+
+    sendGracefulAbortToProcessTree(mockChildWithPid(1234), 1234, 1);
+    expect(killSpy).toHaveBeenCalledWith(-1234, "SIGINT");
+    expect(killSpy).toHaveBeenCalledWith(1234, "SIGINT");
+  });
+
+  it("未送达时打 warning", () => {
+    Object.defineProperty(process, "platform", { value: "win32" });
+    killSpy.mockReturnValue(false as never);
+    sendGracefulAbortToProcessTree(mockChildWithPid(2000), 2000, 1);
+    expect(killSpy).toHaveBeenCalledWith(2000, "SIGINT");
+  });
+
+  it("抛错时打 warning", () => {
+    Object.defineProperty(process, "platform", { value: "win32" });
+    killSpy.mockImplementation(() => {
+      throw new Error("ESRCH");
+    });
+    sendGracefulAbortToProcessTree(mockChildWithPid(2000), 2000, 1);
+    expect(killSpy).toHaveBeenCalledWith(2000, "SIGINT");
+  });
+});
+
+describe("sendGracefulAbortToProcessTree", () => {
+  const origPlatform = process.platform;
+  const killSpy = vi.spyOn(process, "kill");
+
+  afterEach(() => {
+    Object.defineProperty(process, "platform", { value: origPlatform });
+    killSpy.mockReset();
+    vi.mocked(listLiveProcessTreePids).mockReset();
+  });
+
+  it("第 1 次仅对 root 发 SIGINT", () => {
+    Object.defineProperty(process, "platform", { value: "win32" });
+    const child = Object.assign(new EventEmitter(), {
+      pid: 1234,
+      exitCode: null,
+      signalCode: null,
+      kill: vi.fn(() => true),
+    }) as unknown as ChildProcess;
+    killSpy.mockReturnValue(true as never);
+
+    sendGracefulAbortToProcessTree(child, 1234, 1);
+    expect(killSpy).toHaveBeenCalledWith(1234, "SIGINT");
+    expect(listLiveProcessTreePids).not.toHaveBeenCalled();
+  });
+
+  it("第 2 次对仍存活的后代 pid 也发 SIGINT", () => {
+    Object.defineProperty(process, "platform", { value: "win32" });
+    vi.mocked(listLiveProcessTreePids).mockReturnValue([2000, 2001]);
+    killSpy.mockReturnValue(true as never);
+
+    const child = Object.assign(new EventEmitter(), {
+      pid: 1234,
+      exitCode: 1,
+      signalCode: null,
+      kill: vi.fn(() => false),
+    }) as unknown as ChildProcess;
+
+    sendGracefulAbortToProcessTree(child, 1234, 2);
+    expect(killSpy).toHaveBeenCalledWith(1234, "SIGINT");
+    expect(killSpy).toHaveBeenCalledWith(2000, "SIGINT");
+    expect(killSpy).toHaveBeenCalledWith(2001, "SIGINT");
+  });
+
+  it("第 2 次 root 仍存活时跳过重复 SIGINT", () => {
+    Object.defineProperty(process, "platform", { value: "win32" });
+    vi.mocked(listLiveProcessTreePids).mockReturnValue([1234, 2000]);
+    killSpy.mockReturnValue(true as never);
+
+    const child = Object.assign(new EventEmitter(), {
+      pid: 1234,
+      exitCode: null,
+      signalCode: null,
+      kill: vi.fn(() => true),
+    }) as unknown as ChildProcess;
+
+    sendGracefulAbortToProcessTree(child, 1234, 2);
+    expect(killSpy).toHaveBeenCalledTimes(2);
+    expect(killSpy).toHaveBeenNthCalledWith(1, 1234, "SIGINT");
+    expect(killSpy).toHaveBeenNthCalledWith(2, 2000, "SIGINT");
   });
 });
 

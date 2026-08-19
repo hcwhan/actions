@@ -32,11 +32,12 @@
 | 模块 | 作用 |
 |------|------|
 | `watchdog.ts` | `createWatchdog`：deadline → SIGINT 优雅中止 → 强杀 |
-| `spawn-async.ts` | `spawnAsync`、`sendChildSigint`、`forceKillProcessTree` |
+| `process-tree.ts` | `listLiveProcessTreePids`、`isProcessTreeEmpty`、`waitForProcessTreeEmpty` |
+| `spawn-async.ts` | `spawnAsync`、`sendGracefulAbortToProcessTree`、`forceKillProcessTree` |
 | `parse-inputs.ts` | `parseArgsInput`、`parseJobStartMs`、`parseLimitHoursInput`、`parseDispatchInputs` |
 | `dispatch-workflow.ts` | `dispatchRetryWorkflow`：`withRetry` dispatch + 等待 concurrency cancel |
 
-**重试策略约定：** SIGINT 优雅中止为固定 60s 间隔手写循环（成功 = 子进程退出，耗尽后强杀）；`dispatch-workflow` 的 `createWorkflowDispatch` 使用 `withRetry`（`delayMs: 30_000`，最多 3 次，间隔 30s / 60s）。
+**重试策略约定：** SIGINT 优雅中止为固定 60s 间隔手写循环（最多 5 次，成功 = 进程树清空，耗尽后强杀）；`dispatch-workflow` 的 `createWorkflowDispatch` 使用 `withRetry`（`delayMs: 30_000`，最多 3 次，间隔 30s / 60s）。
 
 ---
 

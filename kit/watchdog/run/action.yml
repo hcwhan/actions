@@ -26,7 +26,7 @@ outputs:
   aborted:
     description: deadline 触发且曾进入优雅中止流程
   force-killed:
-    description: 3× SIGINT 后平台强杀（Windows taskkill / Unix SIGKILL 进程组）
+    description: 5× SIGINT 后平台强杀（Windows taskkill / Unix SIGKILL 进程组）
   task-succeeded:
     description: 子进程 exit code === 0
   exit-code:
