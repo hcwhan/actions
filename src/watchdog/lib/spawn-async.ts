@@ -14,18 +14,19 @@ export interface SpawnAsyncHandle {
   completed: Promise<SpawnAsyncResult>;
 }
 
-// 异步 spawn 子进程；全平台 detached: true（Unix 便于进程组强杀；Windows 与 taskkill /T 配合）
+// 异步 spawn 子进程；Unix detached:true 便于进程组强杀；Windows detached:false 保 stdio 继承（GHA 日志）
 export function spawnAsync(
   command: string,
   args: string[],
   cwd: string,
 ): SpawnAsyncHandle {
+  const detached = process.platform !== "win32";
   const child = spawn(command, args, {
     cwd,
     env: process.env,
     stdio: "inherit",
     shell: false,
-    detached: true,
+    detached,
   });
 
   const completed = new Promise<SpawnAsyncResult>((resolve, reject) => {

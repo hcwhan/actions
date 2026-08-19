@@ -49,7 +49,7 @@ describe("spawnAsync", () => {
     expect(child.unref).not.toHaveBeenCalled();
   });
 
-  it("win32: spawn with detached: true", () => {
+  it("win32: spawn with detached: false (stdio inherit for GHA logs)", () => {
     Object.defineProperty(process, "platform", { value: "win32" });
     const child = mockChild();
     vi.mocked(spawn).mockReturnValue(child);
@@ -64,7 +64,7 @@ describe("spawnAsync", () => {
         env: process.env,
         stdio: "inherit",
         shell: false,
-        detached: true,
+        detached: false,
       }),
     );
     expect(child.unref).not.toHaveBeenCalled();
