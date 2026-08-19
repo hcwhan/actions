@@ -37,24 +37,45 @@ export function spawnAsync(
 }
 
 
-// 向 pid 发送 SIGINT，发送前/成功/失败均打日志；成功返回 true
+// 进程是否仍在运行
+function isProcessRunning(child: ChildProcess): boolean {
+  return child.exitCode === null && child.signalCode === null;
+}
+
+// process.kill 目标 pid 已退出时返回 ESRCH
+function isKillEsrchError(err: unknown): boolean {
+  if (
+    typeof err === "object"
+    && err !== null
+    && "code" in err
+    && (err as NodeJS.ErrnoException).code === "ESRCH"
+  ) {
+    return true;
+  }
+
+  return errorMessage(err).includes("ESRCH");
+}
+
+// 向 pid 发送 SIGINT；已送达或目标已不存在返回 true
 function sendSigintWithLog(pid: number): boolean {
-  const killLabel = `kill(${pid}, SIGINT)`;
-  const beforeText = pid < 0
-    ? `向进程组 -pid=${-pid} 发送 SIGINT`
-    : `向 pid=${pid} 发送 SIGINT`;
+  const targetText = pid < 0
+    ? `向进程组 -pid=${-pid} 发送 SIGINT 结果`
+    : `向 pid=${pid} 发送 SIGINT 结果`;
 
   try {
-    core.info(`Watchdog: ${beforeText}`);
     if (!process.kill(pid, "SIGINT")) {
-      core.warning(`Watchdog: ${killLabel} 未送达`);
+      core.warning(`Watchdog: ${targetText}：未送达`);
       return false;
     } else {
-      core.info(`Watchdog: ${killLabel} 已送达`);
+      core.info(`Watchdog: ${targetText}：已送达`);
       return true;
     }
   } catch (err) {
-    core.warning(`Watchdog: ${killLabel} 失败：${errorMessage(err)}`);
+    if (isKillEsrchError(err)) {
+      // core.info(`Watchdog: ${targetText}：进程不存在`);
+      return true;
+    }
+    core.warning(`Watchdog: ${targetText}：失败，${errorMessage(err)}`);
     return false;
   }
 }
@@ -78,7 +99,7 @@ export function sendGracefulAbortToProcessTree(
   rootPid: number,
   attempt: number,
 ): void {
-  if (child.pid !== undefined) {
+  if (child.pid !== undefined && isProcessRunning(child)) {
     sendAbortSignal(child.pid);
   }
 

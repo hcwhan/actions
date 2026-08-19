@@ -2,6 +2,8 @@
 import { EventEmitter } from "node:events";
 import { spawn, spawnSync, type ChildProcess } from "node:child_process";
 
+import * as core from "@actions/core";
+
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import {
@@ -11,6 +13,11 @@ import {
 } from "@/watchdog/lib/spawn-async.js";
 import { listLiveProcessTreePids } from "@/watchdog/lib/process-tree.js";
 
+
+vi.mock("@actions/core", () => ({
+  info: vi.fn(),
+  warning: vi.fn(),
+}));
 
 vi.mock("node:child_process", async (importOriginal) => {
   const orig = await importOriginal<typeof import("node:child_process")>();
@@ -112,6 +119,21 @@ describe("sendGracefulAbortToProcessTree SIGINT delivery", () => {
     }) as unknown as ChildProcess;
   }
 
+  it("root 已退出（signal）时跳过 root SIGINT", () => {
+    Object.defineProperty(process, "platform", { value: "win32" });
+    killSpy.mockReturnValue(true as never);
+
+    const child = Object.assign(new EventEmitter(), {
+      pid: 2000,
+      exitCode: null,
+      signalCode: "SIGINT",
+      kill: vi.fn(() => true),
+    }) as unknown as ChildProcess;
+
+    sendGracefulAbortToProcessTree(child, 2000, 1);
+    expect(killSpy).not.toHaveBeenCalled();
+  });
+
   it("win32：process.kill(pid, SIGINT)", () => {
     Object.defineProperty(process, "platform", { value: "win32" });
     killSpy.mockReturnValue(true as never);
@@ -123,6 +145,22 @@ describe("sendGracefulAbortToProcessTree SIGINT delivery", () => {
     Object.defineProperty(process, "platform", { value: "linux" });
     killSpy.mockReturnValue(true as never);
     sendGracefulAbortToProcessTree(mockChildWithPid(1234), 1234, 1);
+    expect(killSpy).toHaveBeenCalledWith(-1234, "SIGINT");
+  });
+
+  it("unix 进程组 ESRCH 时不回退单 pid", () => {
+    Object.defineProperty(process, "platform", { value: "linux" });
+    killSpy.mockImplementation((target: number) => {
+      if (target === -1234) {
+        const err = new Error("kill ESRCH") as NodeJS.ErrnoException;
+        err.code = "ESRCH";
+        throw err;
+      }
+      return true as never;
+    });
+
+    sendGracefulAbortToProcessTree(mockChildWithPid(1234), 1234, 1);
+    expect(killSpy).toHaveBeenCalledTimes(1);
     expect(killSpy).toHaveBeenCalledWith(-1234, "SIGINT");
   });
 
@@ -147,13 +185,37 @@ describe("sendGracefulAbortToProcessTree SIGINT delivery", () => {
     expect(killSpy).toHaveBeenCalledWith(2000, "SIGINT");
   });
 
-  it("抛错时打 warning", () => {
+  it("ESRCH 时不打日志", () => {
     Object.defineProperty(process, "platform", { value: "win32" });
+    vi.mocked(core.info).mockClear();
+    vi.mocked(core.warning).mockClear();
     killSpy.mockImplementation(() => {
-      throw new Error("ESRCH");
+      const err = new Error("kill ESRCH") as NodeJS.ErrnoException;
+      err.code = "ESRCH";
+      throw err;
     });
+
     sendGracefulAbortToProcessTree(mockChildWithPid(2000), 2000, 1);
+
     expect(killSpy).toHaveBeenCalledWith(2000, "SIGINT");
+    expect(core.info).not.toHaveBeenCalled();
+    expect(core.warning).not.toHaveBeenCalled();
+  });
+
+  it("非 ESRCH 抛错时打 warning", () => {
+    Object.defineProperty(process, "platform", { value: "win32" });
+    vi.mocked(core.info).mockClear();
+    vi.mocked(core.warning).mockClear();
+    killSpy.mockImplementation(() => {
+      throw new Error("EPERM");
+    });
+
+    sendGracefulAbortToProcessTree(mockChildWithPid(2000), 2000, 1);
+
+    expect(killSpy).toHaveBeenCalledWith(2000, "SIGINT");
+    expect(core.warning).toHaveBeenCalledWith(
+      "Watchdog: 向 pid=2000 发送 SIGINT 结果：失败，EPERM",
+    );
   });
 });
 
@@ -182,7 +244,7 @@ describe("sendGracefulAbortToProcessTree", () => {
     expect(listLiveProcessTreePids).not.toHaveBeenCalled();
   });
 
-  it("第 2 次对仍存活的后代 pid 也发 SIGINT", () => {
+  it("第 2 次 root 已退出时仅对后代 pid 发 SIGINT", () => {
     Object.defineProperty(process, "platform", { value: "win32" });
     vi.mocked(listLiveProcessTreePids).mockReturnValue([2000, 2001]);
     killSpy.mockReturnValue(true as never);
@@ -195,7 +257,7 @@ describe("sendGracefulAbortToProcessTree", () => {
     }) as unknown as ChildProcess;
 
     sendGracefulAbortToProcessTree(child, 1234, 2);
-    expect(killSpy).toHaveBeenCalledWith(1234, "SIGINT");
+    expect(killSpy).not.toHaveBeenCalledWith(1234, "SIGINT");
     expect(killSpy).toHaveBeenCalledWith(2000, "SIGINT");
     expect(killSpy).toHaveBeenCalledWith(2001, "SIGINT");
   });

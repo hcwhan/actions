@@ -18,25 +18,41 @@ export function spawnAsync(command, args, cwd) {
     });
     return { child, completed };
 }
-// 向 pid 发送 SIGINT，发送前/成功/失败均打日志；成功返回 true
+// 进程是否仍在运行
+function isProcessRunning(child) {
+    return child.exitCode === null && child.signalCode === null;
+}
+// process.kill 目标 pid 已退出时返回 ESRCH
+function isKillEsrchError(err) {
+    if (typeof err === "object"
+        && err !== null
+        && "code" in err
+        && err.code === "ESRCH") {
+        return true;
+    }
+    return errorMessage(err).includes("ESRCH");
+}
+// 向 pid 发送 SIGINT；已送达或目标已不存在返回 true
 function sendSigintWithLog(pid) {
-    const killLabel = `kill(${pid}, SIGINT)`;
-    const beforeText = pid < 0
-        ? `向进程组 -pid=${-pid} 发送 SIGINT`
-        : `向 pid=${pid} 发送 SIGINT`;
+    const targetText = pid < 0
+        ? `向进程组 -pid=${-pid} 发送 SIGINT 结果`
+        : `向 pid=${pid} 发送 SIGINT 结果`;
     try {
-        core.info(`Watchdog: ${beforeText}`);
         if (!process.kill(pid, "SIGINT")) {
-            core.warning(`Watchdog: ${killLabel} 未送达`);
+            core.warning(`Watchdog: ${targetText}：未送达`);
             return false;
         }
         else {
-            core.info(`Watchdog: ${killLabel} 已送达`);
+            core.info(`Watchdog: ${targetText}：已送达`);
             return true;
         }
     }
     catch (err) {
-        core.warning(`Watchdog: ${killLabel} 失败：${errorMessage(err)}`);
+        if (isKillEsrchError(err)) {
+            // core.info(`Watchdog: ${targetText}：进程不存在`);
+            return true;
+        }
+        core.warning(`Watchdog: ${targetText}：失败，${errorMessage(err)}`);
         return false;
     }
 }
@@ -54,7 +70,7 @@ function sendAbortSignal(pid) {
 }
 // 优雅中止进程树：每轮对 root 发 SIGINT；第 2 次起对进程树中其余 pid 也发 SIGINT
 export function sendGracefulAbortToProcessTree(child, rootPid, attempt) {
-    if (child.pid !== undefined) {
+    if (child.pid !== undefined && isProcessRunning(child)) {
         sendAbortSignal(child.pid);
     }
     if (attempt >= 2) {

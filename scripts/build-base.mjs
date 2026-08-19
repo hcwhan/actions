@@ -167,7 +167,7 @@ export function cleanDist() {
 
 export function compileTypeScript() {
   const tscBin = path.join(rootDir, "node_modules/typescript/bin/tsc");
-  const result = spawnSync(tscBin, ["-p", "tsconfig.build.json"], {
+  const result = spawnSync(process.execPath, [tscBin, "-p", "tsconfig.build.json"], {
     cwd: rootDir,
     stdio: "inherit",
   });
