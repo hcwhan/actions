@@ -8,6 +8,9 @@ import { isProcessTreeEmpty, waitForProcessTreeEmpty } from "./process-tree.js";
 import { forceKillProcessTree, sendGracefulAbortToProcessTree } from "./spawn-async.js";
 
 
+// 小时 → 毫秒换算
+const MS_PER_HOUR = 60 * 60 * 1000;
+
 // 优雅中止重试间隔（毫秒）
 const ABORT_RETRY_INTERVAL_MS = 60_000;
 // 优雅中止最大尝试次数
@@ -101,8 +104,10 @@ export function createWatchdog(
   };
 
   const deadlineTimer = setTimeout((): void => {
+    const elapsedHours = (Date.now() - jobStartMs) / MS_PER_HOUR;
+    const limitHours = limitMs / MS_PER_HOUR;
     core.info(
-      `Watchdog: 任务已运行 ${Date.now() - jobStartMs}ms >= ${limitMs}ms，开始优雅中止`,
+      `Watchdog: 任务已运行 ${elapsedHours.toFixed(1)}小时 >= ${limitHours.toFixed(1)}小时，开始优雅中止`,
     );
 
     aborted = true;
