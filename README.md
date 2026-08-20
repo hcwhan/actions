@@ -2,7 +2,7 @@
 
 可复用的 GitHub Actions 集合（`kit/` 套件）：
 
-- **cache** — 带 UTC 时间后缀的版本化 GHA cache（save / lookup / restore）
+- **cache** — 带 UTC 时间后缀的版本化 GHA cache（save / restore）
 - **watchdog** — job deadline 看门狗 + 超时重试 dispatch（job-start / run / dispatch-retry）
 
 所有 action 均使用 **Node 24** 运行时（`action.yml` 中 `using: node24`）。消费方引用 **`@main`**（如 `hcwhan/actions/kit/cache/save@main`）。
@@ -14,14 +14,13 @@
 | Action      | 路径            | 作用                                                                  |
 | ----------- | --------------- | --------------------------------------------------------------------- |
 | **save**    | `kit/cache/save`    | 追加 UTC 时间后缀 → save → 轮询 API verify → 可选 save 成功后清理同族旧 key |
-| **lookup**  | `kit/cache/lookup`  | 按 cache-key 前缀列举并解析最新 key（只读）                           |
-| **restore** | `kit/cache/restore` | 恢复 cache-key 槽位最新 key；可选 restore 成功后清理同族 key 下旧条目 |
+| **restore** | `kit/cache/restore` | lookup 槽位最新 key 并恢复；`only-lookup` 时仅只读解析；可选 restore 成功后清理同族 key 下旧条目 |
 
 ### Key 格式
 
 ```
 family-key   同族 key（delete 清理时 API 列举范围；>= 6 字符）
-cache-key    缓存 key（lookup 列举前缀；restore 列举前缀且必须以 family-key 为前缀且更长；>= 6 字符）
+cache-key    缓存 key（lookup 列举前缀；restore 时须以 family-key 为前缀且更长；>= 6 字符）
 实际写入 key = cache-key + -YYYY.MM.DD-HH.mm.ss-SSS（output 为 `cache-key-full`）
 ```
 
@@ -33,11 +32,11 @@ cache-key    缓存 key（lookup 列举前缀；restore 列举前缀且必须以
 
 后缀为 UTC、固定宽度；日期/时间字段用 `.` 分隔（符合 GHA cache key 允许的字符集）。
 
-`family-key` 与 `cache-key` 仅允许字母、数字及 `.` `_` `-` `[` `]`，长度均须 >= 6；`cache-key` 加上 24 字符 UTC 后缀后不得超过 GHA 512 字符上限。save / restore 还要求 `cache-key` 必须以 `family-key` 开头且严格更长；lookup 仅需 `cache-key`。
+`family-key` 与 `cache-key` 仅允许字母、数字及 `.` `_` `-` `[` `]`，长度均须 >= 6；`cache-key` 加上 24 字符 UTC 后缀后不得超过 GHA 512 字符上限。save / restore 均要求 `cache-key` 必须以 `family-key` 开头且严格更长（含 `only-lookup`）。
 
 ### 用法
 
-典型 CI 执行顺序为：**restore**（job 开头）→ 构建 → **save**（job 末尾，`if: always()`）；**lookup** 为可选只读查询。
+典型 CI 执行顺序为：**restore**（job 开头）→ 构建 → **save**（job 末尾，`if: always()`）。需要只读探测远端 cache 是否存在时，对 **restore** 传入 `only-lookup: "true"`（`path` / `family-key` / `cache-key` 仍须传入；lookup 仅使用 `cache-key`）。
 
 ```yaml
 permissions:
@@ -58,12 +57,6 @@ steps:
       cleanup-stale: "true"                      # 可选，默认 true：save 成功后是否删除同族 key 下旧条目
       api-try-count: "3"                         # 可选，单次 saveCache / GitHub API 调用的最多尝试次数（含首次，默认 3 次）
 
-  - uses: hcwhan/actions/kit/cache/lookup@main
-    id: cache-lookup
-    with:
-      cache-key: ${{ env.CACHE_KEY }}
-      api-try-count: "3"                         # 可选，单次 GitHub API 调用的最多尝试次数（含首次，默认 3 次）
-
   - uses: hcwhan/actions/kit/cache/restore@main
     id: cache-restore
     with:
@@ -72,6 +65,15 @@ steps:
       cache-key: ${{ env.CACHE_KEY }}
       cleanup-stale: "true"                      # 可选，默认 true：restore 成功后是否删除同族 key 下旧条目
       api-try-count: "3"                         # 可选，单次 restoreCache / GitHub API 调用的最多尝试次数（含首次，默认 3 次）
+
+  - uses: hcwhan/actions/kit/cache/restore@main
+    id: cache-probe
+    with:
+      path: ./build
+      family-key: ${{ env.CACHE_FAMILY_KEY }}
+      cache-key: ${{ env.CACHE_KEY }}
+      only-lookup: "true"                        # 可选，默认 false：仅 lookup 最新 key，不 restore
+      api-try-count: "3"                         # 可选，单次 GitHub API 调用的最多尝试次数（含首次，默认 3 次）
 ```
 
 同一 ref 下，建议每个 cache-key 槽位仅安排一个 writer；代码不强制互斥，并发 save 会写入不同时间后缀的 key。

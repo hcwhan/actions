@@ -10,13 +10,6 @@ interface CacheKeyInputs {
   cacheKey: string;
 }
 
-// 读取并校验 cache-key（lookup 等仅需 cache-key 的 action）
-export function readCacheKeyInput(): string {
-  const cacheKey = core.getInput("cache-key", { required: true }).trim();
-  validateCacheKeyPart(cacheKey, "cache-key");
-  return cacheKey;
-}
-
 // 读取并校验 family-key / cache-key
 export function readCacheKeyInputs(): CacheKeyInputs {
   const familyKey = core.getInput("family-key", { required: true }).trim();

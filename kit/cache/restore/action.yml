@@ -1,16 +1,20 @@
 name: Cache Restore
-description: 按 cache-key 前缀 lookup 最新 versioned cache 并恢复；可选 restore 成功后删除同族 key 下旧条目。
+description: 按 cache-key 前缀 lookup 最新 versioned cache 并恢复；only-lookup 时仅只读解析最新 key；可选 restore 成功后删除同族 key 下旧条目。
 
 inputs:
   path:
-    description: 要恢复到的目录路径（多个路径用换行分隔）
+    description: 要恢复到的目录路径（多个路径用换行分隔；only-lookup 时不使用但仍须传入）
     required: true
   family-key:
-    description: 同族 key（delete 清理时 API 列举范围；校验 cache-key 前缀关系）
+    description: 同族 key（delete 清理时 API 列举范围；校验 cache-key 前缀关系；only-lookup 时不使用但仍须传入）
     required: true
   cache-key:
     description: 缓存 key（lookup 列举前缀；必须以 family-key 为前缀且更长）
     required: true
+  only-lookup:
+    description: 仅 lookup 最新 key，不 restore（只读；path / family-key 仍须传入但不使用）
+    required: false
+    default: "false"
   cleanup-stale:
     description: restore 成功后是否删除同族 key 下旧条目
     required: false

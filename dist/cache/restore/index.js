@@ -10,12 +10,31 @@ function applyRestoreOutputs(outputs) {
     core.setOutput("cache-used", outputs.used ? "true" : "false");
     core.setOutput("cache-key-full", outputs.cacheKeyFull);
 }
+// only-lookup 模式：只读解析最新 key
+async function runOnlyLookup(cacheKey, apiTryCount) {
+    core.info(`lookup cache：cache-key=${cacheKey}`);
+    const cacheKeyFull = await resolveNewestCacheKey(cacheKey, { apiTryCount });
+    const exists = cacheKeyFull !== null;
+    if (exists) {
+        core.info(`找到 cache：cache-key=${cacheKey} cache-key-full=${cacheKeyFull}`);
+    }
+    else {
+        core.info(`未找到 cache：cache-key=${cacheKey}`);
+    }
+    return { exists, cacheKeyFull: cacheKeyFull ?? "" };
+}
 // restore action 主流程：lookup 最新 → restore → 可选清理同族旧 key
 async function run() {
     const paths = readPathInput();
     const { familyKey, cacheKey } = readCacheKeyInputs();
-    const cleanupStale = readBooleanInput("cleanup-stale");
+    const onlyLookup = readBooleanInput("only-lookup");
     const apiTryCount = readPositiveIntInput("api-try-count");
+    if (onlyLookup) {
+        const { exists, cacheKeyFull } = await runOnlyLookup(cacheKey, apiTryCount);
+        applyRestoreOutputs({ exists, used: false, cacheKeyFull });
+        return;
+    }
+    const cleanupStale = readBooleanInput("cleanup-stale");
     core.info(`恢复 cache：family-key=${familyKey} cache-key=${cacheKey}`);
     const cacheKeyFull = await resolveNewestCacheKey(cacheKey, { apiTryCount });
     if (cacheKeyFull === null) {

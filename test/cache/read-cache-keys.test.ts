@@ -2,7 +2,7 @@
 import * as core from "@actions/core";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import { readCacheKeyInput, readCacheKeyInputs } from "@/cache/lib/read-cache-keys.js";
+import { readCacheKeyInputs } from "@/cache/lib/read-cache-keys.js";
 
 
 vi.mock("@actions/core", () => ({
@@ -37,21 +37,6 @@ describe("read-cache-keys", () => {
     mockedGetInput.mockReset();
   });
 
-  it("readCacheKeyInput 读取并校验 cache-key", () => {
-    mockedGetInput.mockImplementation((name) => {
-      if (name === "cache-key") {
-        return CACHE_KEY;
-      }
-      throw new Error(`unexpected input: ${name}`);
-    });
-    expect(readCacheKeyInput()).toBe(CACHE_KEY);
-  });
-
-  it("readCacheKeyInput 拒绝过短 cache-key", () => {
-    mockedGetInput.mockReturnValue("short");
-    expect(() => readCacheKeyInput()).toThrow(/cache-key 无效：过短/);
-  });
-
   it("readCacheKeyInputs 读取并校验 key 对", () => {
     mockCacheKeyInputs(FAMILY_KEY, CACHE_KEY);
     expect(readCacheKeyInputs()).toEqual({ familyKey: FAMILY_KEY, cacheKey: CACHE_KEY });
@@ -75,19 +60,14 @@ describe("read-cache-keys", () => {
     expect(() => readCacheKeyInputs()).toThrow(/cache-key 无效：过短/);
   });
 
-  it("readCacheKeyInput 拒绝超过 GHA 上限的 cache-key", () => {
-    mockedGetInput.mockReturnValue("a".repeat(489));
-    expect(() => readCacheKeyInput()).toThrow(/cache-key 无效：过长/);
-  });
-
   it("readCacheKeyInputs 拒绝超过 GHA 上限的 cache-key", () => {
     mockCacheKeyInputs(FAMILY_KEY, "a".repeat(489));
     expect(() => readCacheKeyInputs()).toThrow(/cache-key 无效：过长/);
   });
 
-  it("readCacheKeyInput 拒绝非法字符", () => {
-    mockedGetInput.mockReturnValue("invalid key with spaces");
-    expect(() => readCacheKeyInput()).toThrow(/cache-key 无效：包含非法字符/);
+  it("readCacheKeyInputs 拒绝 cache-key 非法字符", () => {
+    mockCacheKeyInputs(FAMILY_KEY, "invalid key with spaces");
+    expect(() => readCacheKeyInputs()).toThrow(/cache-key 无效：包含非法字符/);
   });
 
   it("readCacheKeyInputs 拒绝 family-key 非法字符", () => {

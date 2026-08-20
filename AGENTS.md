@@ -1,6 +1,6 @@
 # hcwhan/actions
 
-可复用的 GitHub Actions 集合：**cache**（save / lookup / restore）+ **watchdog**（job-start / run / dispatch-retry），action 声明位于 **`kit/`**。消费方引用 **`@main`**（如 `hcwhan/actions/kit/cache/save@main`）。
+可复用的 GitHub Actions 集合：**cache**（save / restore）+ **watchdog**（job-start / run / dispatch-retry），action 声明位于 **`kit/`**。消费方引用 **`@main`**（如 `hcwhan/actions/kit/cache/save@main`）。
 
 ## 仓库布局
 
