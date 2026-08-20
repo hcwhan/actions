@@ -5,9 +5,9 @@ import { buildVersionedCacheKey, pickNewestVersionedKey } from "@/cache/lib/cach
 
 
 // 测试用 family-key
-const FAMILY_KEY = "fa2-ck-gfx120x-serial";
+const FAMILY_KEY = "fa2-ck-serial";
 // 测试用 cache-key
-const CACHE_KEY = "fa2-ck-gfx120x-serial-v7-lock[abc]";
+const CACHE_KEY = "fa2-ck-serial-v7-lock[abc]";
 
 describe("cache-key-version", () => {
   it("buildVersionedCacheKey 追加 UTC 后缀 -YYYY.MM.DD-HH.mm.ss-SSS", () => {

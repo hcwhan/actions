@@ -15,9 +15,9 @@ vi.mock("@actions/core", () => ({
 const mockedGetInput = vi.mocked(core.getInput);
 
 // 测试用 family-key
-const FAMILY_KEY = "fa2-ck-gfx120x-serial";
+const FAMILY_KEY = "fa2-ck-serial";
 // 测试用 cache-key
-const CACHE_KEY = "fa2-ck-gfx120x-serial-v7-lock[abc]";
+const CACHE_KEY = "fa2-ck-serial-v7-lock[abc]";
 
 // 按 name 返回 family-key / cache-key mock 值
 function mockCacheKeyInputs(familyKey: string, cacheKey: string): void {
