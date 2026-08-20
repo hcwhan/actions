@@ -38,6 +38,7 @@ async function run() {
             if (!verified) {
                 throw new Error(`verify 失败：${verifyTimeoutSec}s 内 API 仍不可见 cache-key-full=${cacheKeyFull}`);
             }
+            core.info(`已保存 cache：cache-key-full=${cacheKeyFull} verify=通过 尝试=${tryIndex}/${maxSaveAttempts}`);
             successAttempt = tryIndex;
             break;
         }

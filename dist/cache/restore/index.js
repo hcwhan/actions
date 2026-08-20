@@ -38,6 +38,7 @@ async function run() {
         const deleted = await deleteStaleFamilyKeys(familyKey, cacheKeyFull, { apiTryCount });
         core.info(`restore 后已删除 family-key=${familyKey} 下 ${deleted} 条旧 cache`);
     }
+    core.info(`已恢复 cache：cache-key-full=${cacheKeyFull} paths=${paths.join(", ")}`);
     applyRestoreOutputs({ exists: true, used: true, cacheKeyFull });
 }
 runAction(run);
